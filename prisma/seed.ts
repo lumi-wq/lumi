@@ -1,0 +1,587 @@
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+const u = (id: string, w = 900) =>
+  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`;
+
+// Пул фотографій одягу/дітей з Unsplash
+const POOL = [
+  "photo-1556821840-3a63f95609a7",
+  "photo-1620799140408-edc6dcb6d633",
+  "photo-1521572163474-6864f9cf17ab",
+  "photo-1523381210434-271e8be1f52b",
+  "photo-1562157873-818bc0726f68",
+  "photo-1618354691373-d851c5c3a990",
+  "photo-1591047139829-d91aecb6caea",
+  "photo-1548126032-079a0fb0099d",
+  "photo-1544966503-7cc5ac882d5f",
+  "photo-1578681994506-b8f463449011",
+  "photo-1602810318383-e386cc2a3ccf",
+  "photo-1503342217505-b0a15ec3261c",
+  "photo-1489987707025-afc232f7bdaf",
+  "photo-1441984904996-e0b6ba687e04",
+  "photo-1445205170230-053b83016050",
+  "photo-1434389677669-e08b4cac3105",
+  "photo-1516762689617-e1cffcef479d",
+  "photo-1576871337622-98d48d1cf531",
+  "photo-1522771930-78848d9293e8",
+  "photo-1503919545889-aef636e10ad4",
+  "photo-1519689680058-324335c77eba",
+  "photo-1503454537195-1dcabb73ffb9",
+  "photo-1471286174890-9c112ffca5b4",
+  "photo-1476234251651-f353703a034d",
+];
+
+const imagesFor = (i: number) => [
+  u(POOL[i % POOL.length]),
+  u(POOL[(i + 1) % POOL.length]),
+  u(POOL[(i + 2) % POOL.length]),
+  u(POOL[(i + 3) % POOL.length]),
+];
+
+const TEEN_SIZES = ["8 років", "10 років", "12 років", "14 років", "16 років"];
+const KID_SIZES = ["2 роки", "3 роки", "4 роки", "5 років", "6 років", "7 років"];
+
+const COLORS: Record<string, string> = {
+  "Яскраво-синій": "#3B5BFF",
+  Кремовий: "#F1E8DC",
+  Зелений: "#3F6B4F",
+  Пісочний: "#D6C6A8",
+  Індиго: "#27346E",
+  Синій: "#3B5BFF",
+  Лавандовий: "#C8BFE7",
+  Графітовий: "#4A4A4A",
+};
+
+type SeedProduct = {
+  slug: string;
+  name: string;
+  price: number;
+  tag?: string;
+  tagStyle?: "cobalt" | "dark";
+  rating: number;
+  reviewCount: number;
+  isFeatured?: boolean;
+  colors: string[];
+  description: string;
+};
+
+const MATERIALS =
+  "100% натуральна бавовна. Пофарбовано рослинними фарбами — безпечно для дитячої шкіри та довкілля.";
+
+const TEENS: SeedProduct[] = [
+  {
+    slug: "hudi-kanso",
+    name: "Худі Kanso",
+    price: 1250,
+    tag: "Хіт",
+    rating: 4.9,
+    reviewCount: 48,
+    isFeatured: true,
+    colors: ["Яскраво-синій", "Кремовий", "Пісочний", "Індиго"],
+    description:
+      "М'яке оверсайз-худі з щільної бавовни з начосом. Ідеальне для школи, прогулянок та спорту. Не втрачає форму після прання.",
+  },
+  {
+    slug: "futbolka-lumi",
+    name: "Футболка Lumi",
+    price: 690,
+    tag: "Новий колір",
+    rating: 4.8,
+    reviewCount: 36,
+    isFeatured: true,
+    colors: ["Кремовий", "Яскраво-синій", "Зелений"],
+    description:
+      "Базова футболка вільного крою з органічної бавовни. Дихаюча тканина, посилені шви, жодних принтів, що тріскаються.",
+  },
+  {
+    slug: "svetr-na-blyskavtsi",
+    name: "Светр на блискавці",
+    price: 1850,
+    tag: "Лімітована",
+    tagStyle: "dark",
+    rating: 4.7,
+    reviewCount: 21,
+    isFeatured: true,
+    colors: ["Зелений", "Графітовий", "Кремовий"],
+    description:
+      "Теплий светр із високим коміром та блискавкою. В'язка середньої щільності, комфортний навіть на голе тіло.",
+  },
+  {
+    slug: "shtany-vilnoho-kroyu",
+    name: "Штани вільного крою",
+    price: 1400,
+    tag: "Еко",
+    rating: 4.8,
+    reviewCount: 29,
+    isFeatured: true,
+    colors: ["Лавандовий", "Пісочний", "Графітовий"],
+    description:
+      "Штани вільного крою з м'якого трикотажу. Еластичний пояс, глибокі кишені — максимальна свобода рухів.",
+  },
+  {
+    slug: "vitrivka-active-shell",
+    name: "Вітрівка Active Shell",
+    price: 2200,
+    tag: "Водостійка",
+    tagStyle: "dark",
+    rating: 4.9,
+    reviewCount: 17,
+    isFeatured: true,
+    colors: ["Яскраво-синій", "Зелений"],
+    description:
+      "Легка вітрівка з водовідштовхувальним покриттям. Капюшон, вентиляційні отвори, світловідбивні деталі.",
+  },
+  {
+    slug: "holf-u-rubchyk",
+    name: "Гольф у рубчик",
+    price: 850,
+    tag: "М'який",
+    rating: 4.6,
+    reviewCount: 24,
+    isFeatured: true,
+    colors: ["Кремовий", "Пісочний", "Індиго"],
+    description:
+      "Гольф у дрібний рубчик, який приємно прилягає до тіла. Чудова база під сорочку, худі чи піджак.",
+  },
+  {
+    slug: "parka-shell",
+    name: "Парка Shell",
+    price: 2900,
+    tag: "Хай-тек",
+    tagStyle: "dark",
+    rating: 4.8,
+    reviewCount: 12,
+    colors: ["Яскраво-синій", "Графітовий"],
+    description:
+      "Технологічна парка для міжсезоння: мембрана 5К, проклеєні шви, знімний капюшон.",
+  },
+  {
+    slug: "everyday-rib-mockneck",
+    name: "Everyday Rib Mockneck",
+    price: 850,
+    rating: 4.7,
+    reviewCount: 19,
+    colors: ["Кремовий", "Пісочний"],
+    description:
+      "Лонгслів у рубчик зі стійкою. Універсальна річ для школи та вихідних.",
+  },
+  {
+    slug: "hudi-kanso-z-nachosom",
+    name: "Худі Kanso з начосом",
+    price: 1250,
+    tag: "Хіт",
+    rating: 4.9,
+    reviewCount: 33,
+    colors: ["Яскраво-синій", "Зелений"],
+    description:
+      "Версія легендарного худі Kanso з теплим начосом усередині. Для прохолодних днів.",
+  },
+  {
+    slug: "oversize-hudi-lumi",
+    name: "Оверсайз худі Lumi",
+    price: 1450,
+    rating: 4.8,
+    reviewCount: 26,
+    colors: ["Пісочний", "Кремовий", "Лавандовий"],
+    description:
+      "Худі максимального оверсайзу з опущеною лінією плеча. Стиль, який обирають підлітки.",
+  },
+  {
+    slug: "dytiache-hudi-na-blyskavtsi",
+    name: "Дитяче худі на блискавці",
+    price: 1150,
+    tag: "Новинка",
+    rating: 4.7,
+    reviewCount: 11,
+    colors: ["Яскраво-синій", "Зелений", "Кремовий"],
+    description:
+      "Худі на блискавці, яке легко вдягати та знімати. Капюшон без шнурків — безпечно для дітей.",
+  },
+  {
+    slug: "eko-hudi-z-bavovny",
+    name: "Еко-худі з бавовни",
+    price: 1100,
+    tag: "Еко",
+    rating: 4.8,
+    reviewCount: 22,
+    colors: ["Зелений", "Пісочний"],
+    description:
+      "Худі з сертифікованої органічної бавовни. Фарбування без важких металів.",
+  },
+  {
+    slug: "flisove-hudi-active",
+    name: "Флісове худі Active",
+    price: 1350,
+    rating: 4.6,
+    reviewCount: 15,
+    colors: ["Графітовий", "Яскраво-синій"],
+    description:
+      "Худі з мікрофлісу для активних тренувань та прогулянок. Швидко сохне, зберігає тепло.",
+  },
+  {
+    slug: "ukorochene-hudi-dlia-pidlitkiv",
+    name: "Укорочене худі для підлітків",
+    price: 1200,
+    rating: 4.7,
+    reviewCount: 18,
+    colors: ["Лавандовий", "Кремовий"],
+    description:
+      "Трендове укорочене худі вільного крою. Поєднуй з джинсами з високою посадкою.",
+  },
+  {
+    slug: "technical-shell-parka",
+    name: "Technical Shell Parka",
+    price: 2900,
+    tag: "Хіт",
+    rating: 4.9,
+    reviewCount: 14,
+    colors: ["Графітовий", "Зелений"],
+    description:
+      "Функціональна парка з вітро- та вологозахистом. Багато кишень, регульований низ.",
+  },
+  {
+    slug: "svitshot-bazovyi",
+    name: "Світшот базовий",
+    price: 950,
+    rating: 4.5,
+    reviewCount: 20,
+    colors: ["Кремовий", "Яскраво-синій", "Пісочний"],
+    description:
+      "Класичний світшот прямого крою. Щільний футер, манжети в рубчик.",
+  },
+];
+
+const KIDS: SeedProduct[] = [
+  {
+    slug: "dytiacha-zymova-kurtka",
+    name: "Дитяча зимова куртка",
+    price: 2450,
+    tag: "Тепла",
+    tagStyle: "dark",
+    rating: 4.9,
+    reviewCount: 31,
+    colors: ["Синій", "Зелений"],
+    description:
+      "Тепла зимова куртка з утеплювачем, капюшоном зі штучним хутром та манжетами-резинками. Витримує до -20°C.",
+  },
+  {
+    slug: "nabir-bazovykh-futbolok",
+    name: "Набір базових футболок (3 шт)",
+    price: 890,
+    tag: "Еко бавовна",
+    rating: 4.8,
+    reviewCount: 44,
+    colors: ["Кремовий", "Синій", "Зелений"],
+    description:
+      "Три базові футболки з м'якої органічної бавовни. Витримують сотні прань.",
+  },
+  {
+    slug: "velvetovyi-kombinezon",
+    name: "Вельветовий комбінезон",
+    price: 1550,
+    rating: 4.7,
+    reviewCount: 16,
+    colors: ["Пісочний", "Зелений"],
+    description:
+      "Комбінезон з м'якого вельвету з регульованими шлейками. Зручні кнопки для швидкого перевдягання.",
+  },
+  {
+    slug: "lehinsy-z-pryntom",
+    name: "Легінси з принтом",
+    price: 450,
+    tag: "Новинка",
+    rating: 4.6,
+    reviewCount: 27,
+    colors: ["Кремовий", "Лавандовий"],
+    description:
+      "Яскраві легінси з м'яким поясом, що не тисне. Принт не вигорає та не тріскається.",
+  },
+  {
+    slug: "svetr-z-kapiushonom",
+    name: "Светр з капюшоном",
+    price: 1100,
+    rating: 4.7,
+    reviewCount: 13,
+    colors: ["Зелений", "Кремовий"],
+    description:
+      "В'язаний светр із капюшоном — теплий, але не колеться. Для садочка та прогулянок.",
+  },
+  {
+    slug: "dzhynsy-vilnoho-kroyu",
+    name: "Джинси вільного крою",
+    price: 980,
+    rating: 4.8,
+    reviewCount: 25,
+    colors: ["Синій"],
+    description:
+      "М'які джинси без грубих швів, з еластичним поясом. Не сковують рухи під час гри.",
+  },
+  {
+    slug: "bodi-z-bavovny",
+    name: "Боді з бавовни (2 шт)",
+    price: 650,
+    tag: "Еко",
+    rating: 4.9,
+    reviewCount: 38,
+    colors: ["Кремовий", "Лавандовий"],
+    description:
+      "Комплект з двох боді з м'якої бавовни інтерлок. Кнопки з нікель-фрі покриттям.",
+  },
+  {
+    slug: "shorty-trykotazhni",
+    name: "Шорти трикотажні",
+    price: 520,
+    rating: 4.5,
+    reviewCount: 14,
+    colors: ["Синій", "Пісочний", "Зелений"],
+    description:
+      "Легкі трикотажні шорти для літа. Еластичний пояс зі шнурком.",
+  },
+  {
+    slug: "pizhama-dytiacha",
+    name: "Піжама дитяча",
+    price: 780,
+    tag: "М'яка",
+    rating: 4.8,
+    reviewCount: 30,
+    colors: ["Лавандовий", "Кремовий"],
+    description:
+      "Затишна піжама з дихаючої бавовни. Плоскі шви — ніщо не заважає солодкому сну.",
+  },
+  {
+    slug: "kurtka-demisezonna",
+    name: "Куртка демісезонна",
+    price: 1850,
+    rating: 4.7,
+    reviewCount: 12,
+    colors: ["Зелений", "Синій"],
+    description:
+      "Легка утеплена куртка для весни та осені. Водовідштовхувальна тканина, капюшон.",
+  },
+];
+
+const REVIEW_TEXTS = [
+  { author: "Олена К.", rating: 5, text: "Якість супер! Дитина не знімає, тканина м'яка та приємна." },
+  { author: "Андрій М.", rating: 5, text: "Після п'яти прань виглядає як нова. Рекомендую." },
+  { author: "Марія В.", rating: 4, text: "Гарна річ, розмір відповідає. Доставка швидка." },
+];
+
+async function main() {
+  console.log("Очищення бази ...");
+  await prisma.orderItem.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.cartItem.deleteMany();
+  await prisma.wishlistItem.deleteMany();
+  await prisma.review.deleteMany();
+  await prisma.productVariant.deleteMany();
+  await prisma.product.deleteMany();
+  await prisma.category.deleteMany();
+  await prisma.promoCode.deleteMany();
+  await prisma.otpCode.deleteMany();
+  await prisma.newsletterSubscriber.deleteMany();
+  await prisma.user.deleteMany();
+
+  console.log("Категорії ...");
+  const teens = await prisma.category.create({
+    data: {
+      slug: "teens",
+      name: "Підлітки (8-16)",
+      description: "Зручний одяг з натуральних тканин для активних дітей та підлітків.",
+      ageRange: "8-16",
+      image: u("photo-1489987707025-afc232f7bdaf"),
+    },
+  });
+  const kids = await prisma.category.create({
+    data: {
+      slug: "kids",
+      name: "Малюки (2-7)",
+      description:
+        "Зручний та яскравий одяг для найменших, виготовлений виключно з м'яких гіпоалергенних матеріалів.",
+      ageRange: "2-7",
+      image: u("photo-1522771930-78848d9293e8"),
+    },
+  });
+
+  console.log("Товари ...");
+  const createProducts = async (
+    items: SeedProduct[],
+    categoryId: string,
+    sizes: string[],
+    offset: number
+  ) => {
+    for (let i = 0; i < items.length; i++) {
+      const p = items[i];
+      const product = await prisma.product.create({
+        data: {
+          slug: p.slug,
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          images: imagesFor(offset + i),
+          tag: p.tag ?? null,
+          tagStyle: p.tagStyle ?? "cobalt",
+          rating: p.rating,
+          reviewCount: p.reviewCount,
+          isFeatured: p.isFeatured ?? false,
+          materials: MATERIALS,
+          categoryId,
+          createdAt: new Date(Date.now() - i * 86400000 * 3),
+          variants: {
+            create: sizes.flatMap((size) =>
+              p.colors.map((color) => ({
+                size,
+                color,
+                colorHex: COLORS[color] ?? "#CCCCCC",
+                stock: 5 + ((offset + i) % 10),
+              }))
+            ),
+          },
+        },
+      });
+      await prisma.review.createMany({
+        data: REVIEW_TEXTS.map((r) => ({
+          productId: product.id,
+          authorName: r.author,
+          rating: r.rating,
+          text: r.text,
+        })),
+      });
+    }
+  };
+
+  await createProducts(TEENS, teens.id, TEEN_SIZES, 0);
+  await createProducts(KIDS, kids.id, KID_SIZES, TEENS.length);
+
+  console.log("Промокоди ...");
+  await prisma.promoCode.createMany({
+    data: [
+      { code: "LUMILIGHT", discountPercent: 10, active: true },
+      { code: "LUMI20", discountPercent: 20, active: true },
+    ],
+  });
+
+  console.log("Користувачі ...");
+  await prisma.user.create({
+    data: {
+      email: "admin@lumi.ua",
+      name: "Адміністратор",
+      isAdmin: true,
+    },
+  });
+
+  const demo = await prisma.user.create({
+    data: {
+      email: "lumi.customer@example.com",
+      name: "Олександр",
+      discountPercent: 10,
+      createdAt: new Date("2024-03-15"),
+    },
+  });
+
+  const hudi = await prisma.product.findUniqueOrThrow({ where: { slug: "hudi-kanso" } });
+  const kombinezon = await prisma.product.findUniqueOrThrow({
+    where: { slug: "velvetovyi-kombinezon" },
+  });
+  const lehinsy = await prisma.product.findUniqueOrThrow({ where: { slug: "lehinsy-z-pryntom" } });
+  const futbolka = await prisma.product.findUniqueOrThrow({ where: { slug: "futbolka-lumi" } });
+
+  console.log("Демо-замовлення ...");
+  await prisma.order.create({
+    data: {
+      number: "LUMI-78921",
+      userId: demo.id,
+      email: demo.email,
+      firstName: "Олександр",
+      lastName: "Шевченко",
+      phone: "+380671234567",
+      city: "Київ",
+      warehouse: "Відділення №12: вул. Хрещатик, 22",
+      paymentMethod: "card",
+      paymentStatus: "paid",
+      status: "DELIVERED",
+      subtotal: 3490,
+      discount: 350,
+      shipping: 0,
+      total: 3140,
+      promoCode: "LUMILIGHT",
+      createdAt: new Date("2026-03-12"),
+      items: {
+        create: [
+          {
+            productId: hudi.id,
+            name: hudi.name,
+            size: "12 років",
+            color: "Яскраво-синій",
+            image: hudi.images[0],
+            price: 1250,
+            quantity: 2,
+          },
+          {
+            productId: futbolka.id,
+            name: futbolka.name,
+            size: "12 років",
+            color: "Кремовий",
+            image: futbolka.images[0],
+            price: 690,
+            quantity: 1,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.order.create({
+    data: {
+      number: "LUMI-78654",
+      userId: demo.id,
+      email: demo.email,
+      firstName: "Олександр",
+      lastName: "Шевченко",
+      phone: "+380671234567",
+      city: "Київ",
+      warehouse: "Відділення №12: вул. Хрещатик, 22",
+      paymentMethod: "card",
+      paymentStatus: "paid",
+      status: "SHIPPED",
+      subtotal: 1250,
+      discount: 0,
+      shipping: 80,
+      total: 1250,
+      createdAt: new Date("2026-02-28"),
+      items: {
+        create: [
+          {
+            productId: hudi.id,
+            name: hudi.name,
+            size: "14 років",
+            color: "Індиго",
+            image: hudi.images[0],
+            price: 1250,
+            quantity: 1,
+          },
+        ],
+      },
+    },
+  });
+
+  console.log("Обране ...");
+  await prisma.wishlistItem.createMany({
+    data: [
+      { userId: demo.id, productId: kombinezon.id },
+      { userId: demo.id, productId: lehinsy.id },
+    ],
+  });
+
+  const count = await prisma.product.count();
+  console.log(`Готово! Товарів: ${count}.`);
+  console.log("Адмін: admin@lumi.ua | Демо-клієнт: lumi.customer@example.com");
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
