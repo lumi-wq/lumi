@@ -3,21 +3,30 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
-type Props = {
-  sizes: string[];
-  colors: { color: string; colorHex: string }[];
-  priceMin: number;
-  priceMax: number;
+export const GENDER_OPTIONS = [
+  { value: "BOY", label: "Хлопчики" },
+  { value: "GIRL", label: "Дівчатка" },
+] as const;
+
+export type FilterProductType = {
+  slug: string;
+  name: string;
+  girlOnly: boolean;
 };
 
-export function FiltersPanel({ sizes, colors, priceMin, priceMax }: Props) {
+type Props = {
+  sizes: string[];
+  productTypes: FilterProductType[];
+};
+
+export function FiltersPanel({ sizes, productTypes }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
 
+  const selectedGender = params.get("gender");
+  const selectedType = params.get("type");
   const selectedSizes = params.get("sizes")?.split(",").filter(Boolean) ?? [];
-  const selectedColors = params.get("colors")?.split(",").filter(Boolean) ?? [];
-  const maxPrice = Number(params.get("max") ?? priceMax);
 
   const update = useCallback(
     (mutate: (p: URLSearchParams) => void) => {
@@ -39,7 +48,29 @@ export function FiltersPanel({ sizes, colors, priceMin, priceMax }: Props) {
     });
   };
 
-  const hasFilters = selectedSizes.length > 0 || selectedColors.length > 0 || params.has("max");
+  const setGender = (value: string | null) => {
+    update((p) => {
+      if (!value) p.delete("gender");
+      else p.set("gender", value);
+      p.delete("type");
+      p.delete("sizes");
+    });
+  };
+
+  const setType = (value: string | null) => {
+    update((p) => {
+      if (!value) p.delete("type");
+      else p.set("type", value);
+      p.delete("sizes");
+    });
+  };
+
+  const visibleTypes = productTypes.filter(
+    (t) => !t.girlOnly || selectedGender === "GIRL"
+  );
+
+  const hasFilters =
+    Boolean(selectedGender) || Boolean(selectedType) || selectedSizes.length > 0;
 
   return (
     <aside className="w-full shrink-0 lg:w-60">
@@ -49,9 +80,9 @@ export function FiltersPanel({ sizes, colors, priceMin, priceMax }: Props) {
           <button
             onClick={() =>
               update((p) => {
+                p.delete("gender");
+                p.delete("type");
                 p.delete("sizes");
-                p.delete("colors");
-                p.delete("max");
               })
             }
             className="text-xs font-semibold text-cobalt underline underline-offset-2"
@@ -62,73 +93,79 @@ export function FiltersPanel({ sizes, colors, priceMin, priceMax }: Props) {
       </div>
 
       <div className="mt-8">
-        <h4 className="text-sm font-bold">Розмір (вік)</h4>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {sizes.map((size) => {
-            const active = selectedSizes.includes(size);
+        <h4 className="text-sm font-bold">Для кого</h4>
+        <div className="mt-4 flex flex-col gap-2">
+          {GENDER_OPTIONS.map((opt) => {
+            const active = selectedGender === opt.value;
             return (
               <button
-                key={size}
-                onClick={() => toggleCsv("sizes", size, selectedSizes)}
-                className={`rounded-lg border px-3 py-2 text-[13px] font-medium transition ${
+                key={opt.value}
+                onClick={() => setGender(active ? null : opt.value)}
+                className={`rounded-lg border px-3 py-2.5 text-left text-[13px] font-medium transition ${
                   active
                     ? "border-cobalt bg-cobalt/5 font-semibold text-cobalt"
                     : "border-[#E0E0E0] bg-white hover:border-obsidian"
                 }`}
               >
-                {size}
+                {opt.label}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="mt-8">
-        <h4 className="text-sm font-bold">Кольори</h4>
-        <div className="mt-4 space-y-3">
-          {colors.map(({ color, colorHex }) => {
-            const active = selectedColors.includes(color);
-            return (
-              <button
-                key={color}
-                onClick={() => toggleCsv("colors", color, selectedColors)}
-                className="flex w-full items-center gap-3 text-left"
-              >
-                <span
-                  className={`h-5 w-5 rounded-full border ${
-                    active ? "ring-2 ring-cobalt ring-offset-2" : "border-black/10"
+      {selectedGender ? (
+        <div className="mt-8">
+          <h4 className="text-sm font-bold">Категорія</h4>
+          <div className="mt-4 flex flex-col gap-2">
+            {visibleTypes.map((t) => {
+              const active = selectedType === t.slug;
+              return (
+                <button
+                  key={t.slug}
+                  onClick={() => setType(active ? null : t.slug)}
+                  className={`rounded-lg border px-3 py-2.5 text-left text-[13px] font-medium transition ${
+                    active
+                      ? "border-cobalt bg-cobalt/5 font-semibold text-cobalt"
+                      : "border-[#E0E0E0] bg-white hover:border-obsidian"
                   }`}
-                  style={{ backgroundColor: colorHex }}
-                />
-                <span
-                  className={`text-sm ${active ? "font-semibold text-cobalt" : "text-obsidian/80"}`}
                 >
-                  {color}
-                </span>
-              </button>
-            );
-          })}
+                  {t.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      ) : (
+        <p className="mt-8 text-sm text-obsidian/50">
+          Оберіть хлопчиків або дівчаток, щоб побачити категорії.
+        </p>
+      )}
 
       <div className="mt-8">
-        <h4 className="text-sm font-bold">Ціна</h4>
-        <input
-          type="range"
-          min={priceMin}
-          max={priceMax}
-          step={50}
-          value={maxPrice}
-          onChange={(e) => update((p) => p.set("max", e.target.value))}
-          className="mt-4 w-full accent-cobalt"
-          aria-label="Максимальна ціна"
-        />
-        <div className="mt-2 flex justify-between text-xs text-obsidian/60">
-          <span>{priceMin.toLocaleString("en-US")} ₴</span>
-          <span className="font-semibold text-obsidian">
-            до {maxPrice.toLocaleString("en-US")} ₴
-          </span>
-        </div>
+        <h4 className="text-sm font-bold">Вік / розмір</h4>
+        {sizes.length === 0 ? (
+          <p className="mt-4 text-sm text-obsidian/50">Немає доступних розмірів</p>
+        ) : (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {sizes.map((size) => {
+              const active = selectedSizes.includes(size);
+              return (
+                <button
+                  key={size}
+                  onClick={() => toggleCsv("sizes", size, selectedSizes)}
+                  className={`rounded-lg border px-3 py-2 text-[13px] font-medium transition ${
+                    active
+                      ? "border-cobalt bg-cobalt/5 font-semibold text-cobalt"
+                      : "border-[#E0E0E0] bg-white hover:border-obsidian"
+                  }`}
+                >
+                  {size}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </aside>
   );

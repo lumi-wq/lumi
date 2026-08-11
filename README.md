@@ -9,7 +9,7 @@
 - **PostgreSQL + Prisma ORM** (локально — embedded PostgreSQL, без Docker)
 - **Zustand** (кошик з localStorage) + **React Query** (серверні дані)
 - **JWT-сесії** в httpOnly cookie (jose), email + 4-значний OTP код
-- Абстракція оплати: **LiqPay / Monobank Acquiring / mock**
+- Абстракція оплати: **Monobank Acquiring / mock** + післяплата Новою Поштою
 - **Нова Пошта API** (з моком довідників без ключа)
 
 ## Запуск
@@ -63,8 +63,9 @@ OTP-код у dev-режимі показується прямо на сторі
 Керується змінною `PAYMENT_PROVIDER` у `.env`:
 
 - `mock` (за замовчуванням) — одразу «оплачує» замовлення і веде на сторінку успіху
-- `liqpay` — потрібні `LIQPAY_PUBLIC_KEY` / `LIQPAY_PRIVATE_KEY`
-- `monobank` — потрібен `MONOBANK_TOKEN`
+- `monobank` — потрібен `MONOBANK_TOKEN` (Visa/Mastercard, Apple Pay, Google Pay на сторінці Monobank)
+
+Також у checkout є **післяплата** через Нову Пошту (оплата при отриманні).
 
 ## Нова Пошта (Україна)
 

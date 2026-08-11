@@ -44,26 +44,46 @@ model Category {
   products    Product[]
 }
 
+enum ProductGender {
+  BOY
+  GIRL
+}
+
+/// Тип товару в каталозі (футболки, сукні…). girlOnly — лише для дівчаток.
+model ProductType {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  sortOrder Int       @default(0)
+  girlOnly  Boolean   @default(false)
+  products  Product[]
+}
+
 model Product {
-  id          String           @id @default(cuid())
-  slug        String           @unique
-  name        String
-  description String
-  price       Int
-  images      String[]
-  tag         String?
-  tagStyle    String?          @default("cobalt")
-  rating      Float            @default(0)
-  reviewCount Int              @default(0)
-  isFeatured  Boolean          @default(false)
-  materials   String?
-  createdAt   DateTime         @default(now())
-  categoryId  String
-  category    Category         @relation(fields: [categoryId], references: [id])
-  variants    ProductVariant[]
-  reviews     Review[]
-  cartItems   CartItem[]
-  wishlistedBy WishlistItem[]
+  id             String           @id @default(cuid())
+  slug           String           @unique
+  name           String
+  description    String
+  price          Int
+  compareAtPrice Int?
+  images         String[]
+  tag            String?
+  tagStyle       String?          @default("cobalt")
+  rating         Float            @default(0)
+  reviewCount    Int              @default(0)
+  isFeatured     Boolean          @default(false)
+  isSale         Boolean          @default(false)
+  gender         ProductGender    @default(BOY)
+  materials      String?
+  createdAt      DateTime         @default(now())
+  categoryId     String
+  category       Category         @relation(fields: [categoryId], references: [id])
+  productTypeId  String?
+  productType    ProductType?     @relation(fields: [productTypeId], references: [id])
+  variants       ProductVariant[]
+  reviews        Review[]
+  cartItems      CartItem[]
+  wishlistedBy   WishlistItem[]
 }
 
 model ProductVariant {

@@ -38,12 +38,20 @@ const LIFESTYLE = [
 ];
 
 export default async function HomePage() {
-  const featured = await prisma.product.findMany({
-    where: { isFeatured: true },
-    include: { variants: true },
-    orderBy: { createdAt: "asc" },
-    take: 6,
-  });
+  const [featured, sale] = await Promise.all([
+    prisma.product.findMany({
+      where: { isFeatured: true },
+      include: { variants: true },
+      orderBy: { createdAt: "asc" },
+      take: 6,
+    }),
+    prisma.product.findMany({
+      where: { isSale: true },
+      include: { variants: true },
+      orderBy: { price: "asc" },
+      take: 6,
+    }),
+  ]);
 
   return (
     <>
@@ -53,20 +61,20 @@ export default async function HomePage() {
           <div className="flex items-center px-5 py-16 md:px-10 lg:px-20 lg:py-24">
             <div className="max-w-xl">
               <span className="inline-block rounded-md bg-cobalt/10 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-cobalt">
-                Весняна колекція &#39;26
+                Розпродаж залишків
               </span>
               <h1 className="mt-6 font-display text-4xl font-black uppercase leading-[1.05] tracking-tight text-cobalt md:text-[56px]">
-                Стильний одяг для дітей та підлітків
+                Великі знижки на улюблені моделі
               </h1>
               <p className="mt-6 max-w-md text-lg leading-relaxed text-obsidian/80">
-                Зручний та модний одяг з натуральних матеріалів для дітей від 8 до 16 років.
+                Сезонні залишки з помітними знижками — поки є розміри. Зручний одяг з натуральних матеріалів.
               </p>
               <div className="mt-10 flex flex-wrap gap-4">
-                <Link href="/category/teens" className="btn-primary">
-                  Підлітки (8-16)
+                <Link href="/category/sale" className="btn-primary">
+                  Дивитись розпродаж
                 </Link>
-                <Link href="/search?q=еко" className="btn-secondary">
-                  Еко-колекція
+                <Link href="/category/new" className="btn-secondary">
+                  Новинки
                 </Link>
               </div>
             </div>
@@ -83,6 +91,29 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Розпродаж */}
+      {sale.length > 0 && (
+        <section className="bg-white py-20">
+          <div className="container-content">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-widest text-cobalt">Залишки сезону</p>
+                <h2 className="mt-2 font-display text-3xl font-black md:text-[38px]">Розпродаж</h2>
+              </div>
+              <Link
+                href="/category/sale"
+                className="shrink-0 text-[15px] font-semibold text-cobalt underline-offset-4 hover:underline"
+              >
+                Усі зі знижкою
+              </Link>
+            </div>
+            <div className="mt-10">
+              <ProductGrid products={sale.map(toCardData)} />
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Популярні категорії */}
       <section className="py-20">

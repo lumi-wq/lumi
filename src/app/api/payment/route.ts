@@ -21,7 +21,7 @@ export async function POST(req: Request) {
       id: order.id,
       number: order.number,
       total: order.total,
-      description: `Замовлення ${order.number} — LUMI Apparel Studio`,
+      description: `Замовлення ${order.number} — LUMI`,
     });
     // Мок-провайдер одразу позначає замовлення оплаченим
     if (provider.name === "mock") {

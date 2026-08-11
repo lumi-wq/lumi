@@ -4,9 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/store/cart";
-import { formatPrice } from "@/lib/format";
 import type { ProductCardData } from "@/lib/types";
 import { Tag } from "./Tag";
+import { ProductPrice } from "./ProductPrice";
 
 export function ProductCard({ product }: { product: ProductCardData }) {
   const add = useCart((s) => s.add);
@@ -28,6 +28,12 @@ export function ProductCard({ product }: { product: ProductCardData }) {
     setTimeout(() => setAdded(false), 1500);
   };
 
+  const badge = product.isSale
+    ? { label: "Розпродаж", style: "dark" as const }
+    : product.tag
+      ? { label: product.tag, style: product.tagStyle }
+      : null;
+
   return (
     <article className="group overflow-hidden rounded-card bg-white shadow-sm transition hover:shadow-md">
       <Link href={`/product/${product.slug}`} className="relative block h-[320px] overflow-hidden bg-mint/40">
@@ -40,9 +46,9 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             className="object-cover transition duration-300 group-hover:scale-105"
           />
         )}
-        {product.tag && (
+        {badge && (
           <span className="absolute left-3 top-3">
-            <Tag label={product.tag} style={product.tagStyle} />
+            <Tag label={badge.label} style={badge.style} />
           </span>
         )}
       </Link>
@@ -51,14 +57,17 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           <Link href={`/product/${product.slug}`} className="text-base font-medium hover:text-cobalt">
             {product.name}
           </Link>
-          <p className="mt-1 text-[15px] font-semibold text-obsidian/80">{formatPrice(product.price)}</p>
+          <ProductPrice
+            price={product.price}
+            compareAtPrice={product.compareAtPrice}
+            className="mt-1"
+          />
         </div>
         {product.colors.length > 0 && (
           <div className="flex gap-1.5">
             {product.colors.map((c) => (
               <span
-                key={c.color}
-                title={c.color}
+                key={c.colorHex}
                 className="h-3 w-3 rounded-full border border-black/10"
                 style={{ backgroundColor: c.colorHex }}
               />

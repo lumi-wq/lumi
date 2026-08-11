@@ -74,8 +74,13 @@ export default function CartPage() {
                 <Link href={`/product/${line.slug}`} className="font-bold hover:text-cobalt">
                   {line.name}
                 </Link>
-                <p className="mt-1 text-sm text-obsidian/60">
-                  {line.color} / {line.size}
+                <p className="mt-1 flex items-center gap-2 text-sm text-obsidian/60">
+                  <span
+                    className="inline-block h-3.5 w-3.5 rounded-full border border-black/10"
+                    style={{ backgroundColor: line.color }}
+                    aria-hidden
+                  />
+                  {line.size}
                 </p>
                 <button
                   onClick={() => remove(line.variantId)}

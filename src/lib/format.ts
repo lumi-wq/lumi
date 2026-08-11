@@ -5,6 +5,12 @@ export function formatPrice(value: number): string {
   return `${value.toLocaleString("en-US")} ₴`;
 }
 
+/** Відсоток знижки, якщо є стара ціна вища за поточну. */
+export function discountPercent(price: number, compareAtPrice: number | null | undefined): number | null {
+  if (!compareAtPrice || compareAtPrice <= price) return null;
+  return Math.round(((compareAtPrice - price) / compareAtPrice) * 100);
+}
+
 export function formatDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("uk-UA", {
     day: "numeric",

@@ -25,8 +25,11 @@ export function ProductPurchase({ product, variants }: Props) {
 
   const colors = useMemo(() => {
     const map = new Map<string, string>();
-    for (const v of variants) if (!map.has(v.color)) map.set(v.color, v.colorHex);
-    return Array.from(map, ([color, colorHex]) => ({ color, colorHex }));
+    for (const v of variants) {
+      const hex = v.colorHex.toUpperCase();
+      if (!map.has(hex)) map.set(hex, hex);
+    }
+    return Array.from(map, ([colorHex]) => ({ colorHex }));
   }, [variants]);
 
   const sizes = useMemo(
@@ -34,14 +37,18 @@ export function ProductPurchase({ product, variants }: Props) {
     [variants]
   );
 
-  const [color, setColor] = useState(colors[0]?.color ?? "");
+  const [colorHex, setColorHex] = useState(colors[0]?.colorHex ?? "");
   const [size, setSize] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const [wishState, setWishState] = useState<"idle" | "saved">("idle");
 
-  const selectedVariant = variants.find((v) => v.color === color && v.size === size);
+  const selectedVariant = variants.find(
+    (v) => v.colorHex.toUpperCase() === colorHex && v.size === size
+  );
   const sizeAvailable = (s: string) =>
-    variants.some((v) => v.size === s && v.color === color && v.stock > 0);
+    variants.some(
+      (v) => v.size === s && v.colorHex.toUpperCase() === colorHex && v.stock > 0
+    );
 
   const addToCart = () => {
     if (!selectedVariant) return;
@@ -51,7 +58,7 @@ export function ProductPurchase({ product, variants }: Props) {
       slug: product.slug,
       name: product.name,
       image: product.image,
-      color: selectedVariant.color,
+      color: selectedVariant.colorHex,
       size: selectedVariant.size,
       price: product.price,
     });
@@ -78,21 +85,18 @@ export function ProductPurchase({ product, variants }: Props) {
   return (
     <div className="mt-8 space-y-8">
       <div>
-        <p className="text-sm font-semibold">
-          Колір: <span className="text-obsidian/70">{color}</span>
-        </p>
+        <p className="text-sm font-semibold">Колір</p>
         <div className="mt-3 flex gap-3">
           {colors.map((c) => (
             <button
-              key={c.color}
+              key={c.colorHex}
               onClick={() => {
-                setColor(c.color);
+                setColorHex(c.colorHex);
                 setSize(null);
               }}
-              title={c.color}
-              aria-label={`Колір ${c.color}`}
+              aria-label="Обрати колір"
               className={`h-9 w-9 rounded-full border border-black/10 transition ${
-                c.color === color ? "ring-2 ring-cobalt ring-offset-2" : "hover:scale-110"
+                c.colorHex === colorHex ? "ring-2 ring-cobalt ring-offset-2" : "hover:scale-110"
               }`}
               style={{ backgroundColor: c.colorHex }}
             />
