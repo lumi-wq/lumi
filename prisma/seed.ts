@@ -423,6 +423,22 @@ async function main() {
     typesBySlug.set(row.slug, row.id);
   }
 
+  console.log("Типи товарів ...");
+  const typeDefs = [
+    { slug: "outerwear", name: "Верхній одяг", sortOrder: 10, girlOnly: false },
+    { slug: "sportswear", name: "Спортивні костюми", sortOrder: 20, girlOnly: false },
+    { slug: "tshirts", name: "Футболки", sortOrder: 30, girlOnly: false },
+    { slug: "pants", name: "Штани", sortOrder: 40, girlOnly: false },
+    { slug: "dresses", name: "Сукні", sortOrder: 50, girlOnly: true },
+    { slug: "footwear", name: "Взуття", sortOrder: 60, girlOnly: false },
+    { slug: "accessories", name: "Аксесуари", sortOrder: 70, girlOnly: false },
+  ];
+  const typesBySlug = new Map<string, string>();
+  for (const t of typeDefs) {
+    const row = await prisma.productType.create({ data: t });
+    typesBySlug.set(row.slug, row.id);
+  }
+
   console.log("Товари ...");
   const createProducts = async (
     items: SeedProduct[],
