@@ -82,7 +82,7 @@ export default async function HomePage() {
           <div className="relative min-h-[320px] lg:min-h-[640px]">
             <Image
               src={HERO_IMAGE}
-              alt="Підлітки в одязі LUMI"
+              alt="Діти в одязі LUMI"
               fill
               priority
               sizes="(max-width: 1024px) 100vw, 50vw"
@@ -124,7 +124,7 @@ export default async function HomePage() {
               <h2 className="mt-2 font-display text-3xl font-black md:text-[38px]">Популярні категорії</h2>
             </div>
             <Link
-              href="/category/teens"
+              href="/category/new"
               className="hidden text-[15px] font-semibold text-cobalt underline-offset-4 hover:underline sm:block"
             >
               Дивитись все

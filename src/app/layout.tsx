@@ -16,11 +16,11 @@ const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" }
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
-    default: "LUMI — стильний одяг для дітей та підлітків",
+    default: "LUMI — стильний одяг для дітей 6–16",
     template: "%s | LUMI",
   },
   description:
-    "Модний дитячий та підлітковий одяг з натуральних матеріалів. Зручно, стильно, якісно. Безкоштовна доставка від 1 500 ₴.",
+    "Одяг для дітей віком від 6 до 16 років з натуральних матеріалів. Зручно, стильно, якісно. Безкоштовна доставка від 1 500 ₴.",
   openGraph: {
     siteName: "LUMI",
     locale: "uk_UA",

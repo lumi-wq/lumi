@@ -47,7 +47,7 @@ export default function CartPage() {
       <div className="container-content py-24 text-center">
         <h1 className="font-display text-3xl font-black">Кошик порожній</h1>
         <p className="mt-3 text-obsidian/60">Додайте щось стильне — ми підібрали для вас найкраще.</p>
-        <Link href="/category/teens" className="btn-primary mt-8">
+        <Link href="/category/new" className="btn-primary mt-8">
           До каталогу
         </Link>
       </div>

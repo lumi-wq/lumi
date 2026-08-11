@@ -66,11 +66,11 @@ export default async function SearchPage({
                 точнішого пошуку.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-4">
-                <Link href="/category/teens" className="btn-secondary">
-                  Для підлітків (8-16)
+                <Link href="/category/girls" className="btn-secondary">
+                  Дівчатка
                 </Link>
-                <Link href="/category/kids" className="btn-secondary">
-                  Для малюків (2-7)
+                <Link href="/category/boys" className="btn-secondary">
+                  Хлопчики
                 </Link>
               </div>
             </div>

@@ -8,6 +8,8 @@ export const GENDER_OPTIONS = [
   { value: "GIRL", label: "Дівчатка" },
 ] as const;
 
+export type FilterGender = "BOY" | "GIRL";
+
 export type FilterProductType = {
   slug: string;
   name: string;
@@ -17,14 +19,16 @@ export type FilterProductType = {
 type Props = {
   sizes: string[];
   productTypes: FilterProductType[];
+  /** Якщо задано (сторінки Дівчатка / Хлопчики) — фільтр «Для кого» прихований */
+  lockedGender?: FilterGender;
 };
 
-export function FiltersPanel({ sizes, productTypes }: Props) {
+export function FiltersPanel({ sizes, productTypes, lockedGender }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
 
-  const selectedGender = params.get("gender");
+  const selectedGender = lockedGender ?? params.get("gender");
   const selectedType = params.get("type");
   const selectedSizes = params.get("sizes")?.split(",").filter(Boolean) ?? [];
 
@@ -49,6 +53,7 @@ export function FiltersPanel({ sizes, productTypes }: Props) {
   };
 
   const setGender = (value: string | null) => {
+    if (lockedGender) return;
     update((p) => {
       if (!value) p.delete("gender");
       else p.set("gender", value);
@@ -70,7 +75,9 @@ export function FiltersPanel({ sizes, productTypes }: Props) {
   );
 
   const hasFilters =
-    Boolean(selectedGender) || Boolean(selectedType) || selectedSizes.length > 0;
+    (!lockedGender && Boolean(selectedGender)) ||
+    Boolean(selectedType) ||
+    selectedSizes.length > 0;
 
   return (
     <aside className="w-full shrink-0 lg:w-60">
@@ -80,7 +87,7 @@ export function FiltersPanel({ sizes, productTypes }: Props) {
           <button
             onClick={() =>
               update((p) => {
-                p.delete("gender");
+                if (!lockedGender) p.delete("gender");
                 p.delete("type");
                 p.delete("sizes");
               })
@@ -92,27 +99,29 @@ export function FiltersPanel({ sizes, productTypes }: Props) {
         )}
       </div>
 
-      <div className="mt-8">
-        <h4 className="text-sm font-bold">Для кого</h4>
-        <div className="mt-4 flex flex-col gap-2">
-          {GENDER_OPTIONS.map((opt) => {
-            const active = selectedGender === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => setGender(active ? null : opt.value)}
-                className={`rounded-lg border px-3 py-2.5 text-left text-[13px] font-medium transition ${
-                  active
-                    ? "border-cobalt bg-cobalt/5 font-semibold text-cobalt"
-                    : "border-[#E0E0E0] bg-white hover:border-obsidian"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
+      {!lockedGender && (
+        <div className="mt-8">
+          <h4 className="text-sm font-bold">Для кого</h4>
+          <div className="mt-4 flex flex-col gap-2">
+            {GENDER_OPTIONS.map((opt) => {
+              const active = selectedGender === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setGender(active ? null : opt.value)}
+                  className={`rounded-lg border px-3 py-2.5 text-left text-[13px] font-medium transition ${
+                    active
+                      ? "border-cobalt bg-cobalt/5 font-semibold text-cobalt"
+                      : "border-[#E0E0E0] bg-white hover:border-obsidian"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {selectedGender ? (
         <div className="mt-8">

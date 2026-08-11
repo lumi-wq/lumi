@@ -63,7 +63,7 @@ export default async function ProfilePage() {
                 {orders.length === 0 && (
                   <div className="rounded-card bg-chalk p-8 text-center text-sm text-obsidian/60">
                     Замовлень поки немає.{" "}
-                    <Link href="/category/teens" className="font-semibold text-cobalt underline">
+                    <Link href="/category/new" className="font-semibold text-cobalt underline">
                       До каталогу
                     </Link>
                   </div>
@@ -142,7 +142,7 @@ export default async function ProfilePage() {
               <div className="flex items-center justify-between">
                 <h2 className="font-display text-xl font-bold">Обране</h2>
                 <Link
-                  href="/category/teens"
+                  href="/category/new"
                   className="text-[13px] font-semibold text-cobalt underline underline-offset-2"
                 >
                   Дивитись все
