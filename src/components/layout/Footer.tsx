@@ -7,10 +7,10 @@ const COLUMNS = [
     title: "Магазин",
     links: [
       { label: "Розпродаж", href: "/category/sale" },
-      { label: "Весь одяг", href: "/category/teens" },
       { label: "Новинки", href: "/category/new" },
-      { label: "Для підлітків", href: "/category/teens" },
-      { label: "Аксесуари", href: "/search?q=аксесуари" },
+      { label: "Дівчатка", href: "/category/girls" },
+      { label: "Хлопчики", href: "/category/boys" },
+      { label: "Аксесуари", href: "/category/new?type=accessories" },
     ],
   },
   {
@@ -32,7 +32,7 @@ export function Footer() {
         <div>
           <Logo dark />
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/70">
-            Модний дитячий та підлітковий одяг з натуральних матеріалів. Зручно, стильно, якісно.
+            Стильний одяг для дітей 6–16 років з натуральних матеріалів. Зручно, стильно, якісно.
           </p>
           <div className="mt-6 flex gap-3">
             {[0, 1, 2].map((i) => (

@@ -6,6 +6,12 @@ const nextConfig = {
       { protocol: "https", hostname: "plus.unsplash.com" },
     ],
   },
+  async redirects() {
+    return [
+      { source: "/category/kids", destination: "/category/new", permanent: true },
+      { source: "/category/teens", destination: "/category/new", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

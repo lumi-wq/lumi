@@ -40,8 +40,7 @@ const imagesFor = (i: number) => [
   u(POOL[(i + 3) % POOL.length]),
 ];
 
-const TEEN_SIZES = ["8 років", "10 років", "12 років", "14 років", "16 років"];
-const KID_SIZES = ["2 роки", "3 роки", "4 роки", "5 років", "6 років", "7 років"];
+const SIZES_6_16 = ["6 років", "8 років", "10 років", "12 років", "14 років", "16 років"];
 
 const COLORS: Record<string, string> = {
   "Яскраво-синій": "#3B5BFF",
@@ -398,23 +397,13 @@ async function main() {
   await prisma.user.deleteMany();
 
   console.log("Категорії ...");
-  const teens = await prisma.category.create({
+  const catalog = await prisma.category.create({
     data: {
-      slug: "teens",
-      name: "Підлітки (8-16)",
-      description: "Зручний одяг з натуральних тканин для активних дітей та підлітків.",
-      ageRange: "8-16",
+      slug: "kidswear",
+      name: "Одяг 6–16",
+      description: "Зручний одяг з натуральних тканин для дітей віком від 6 до 16 років.",
+      ageRange: "6-16",
       image: u("photo-1489987707025-afc232f7bdaf"),
-    },
-  });
-  const kids = await prisma.category.create({
-    data: {
-      slug: "kids",
-      name: "Малюки (2-7)",
-      description:
-        "Зручний та яскравий одяг для найменших, виготовлений виключно з м'яких гіпоалергенних матеріалів.",
-      ageRange: "2-7",
-      image: u("photo-1522771930-78848d9293e8"),
     },
   });
 
@@ -493,8 +482,8 @@ async function main() {
     }
   };
 
-  await createProducts(TEENS, teens.id, TEEN_SIZES, 0);
-  await createProducts(KIDS, kids.id, KID_SIZES, TEENS.length);
+  await createProducts(TEENS, catalog.id, SIZES_6_16, 0);
+  await createProducts(KIDS, catalog.id, SIZES_6_16, TEENS.length);
 
   console.log("Промокоди ...");
   await prisma.promoCode.createMany({

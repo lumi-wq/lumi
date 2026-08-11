@@ -54,7 +54,7 @@ const EMPTY: FormState = {
   gender: "BOY",
   images: [],
   colorHexes: [],
-  sizes: "8 років, 10 років, 12 років, 14 років, 16 років",
+  sizes: "6 років, 8 років, 10 років, 12 років, 14 років, 16 років",
   stock: "10",
   isSale: false,
 };

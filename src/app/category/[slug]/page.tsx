@@ -12,16 +12,36 @@ import { Pagination } from "@/components/catalog/Pagination";
 
 const PAGE_SIZE = 9;
 
-const VIRTUAL_CATEGORIES: Record<string, { slug: string; name: string; description: string }> = {
+const VIRTUAL_CATEGORIES: Record<
+  string,
+  {
+    slug: string;
+    name: string;
+    description: string;
+    gender?: ProductGender;
+  }
+> = {
   new: {
     slug: "new",
     name: "Новинки",
-    description: "Свіжі надходження LUMI — нові моделі та кольори щотижня.",
+    description: "Свіжі надходження LUMI — одяг для дітей 6–16 років.",
   },
   sale: {
     slug: "sale",
     name: "Розпродаж",
     description: "Великі знижки на залишки сезону — поки є розміри.",
+  },
+  girls: {
+    slug: "girls",
+    name: "Дівчатка",
+    description: "Одяг для дівчаток 6–16 років — зручно, стильно, на кожен день.",
+    gender: "GIRL",
+  },
+  boys: {
+    slug: "boys",
+    name: "Хлопчики",
+    description: "Одяг для хлопчиків 6–16 років — база, спорт і верхній одяг.",
+    gender: "BOY",
   },
 };
 
@@ -69,9 +89,11 @@ export default async function CategoryPage({
 
   const isVirtualNew = params.slug === "new";
   const isVirtualSale = params.slug === "sale";
+  const lockedGender =
+    "gender" in category ? category.gender : undefined;
   const categoryId = "id" in category ? category.id : undefined;
 
-  const gender = parseGender(searchParams.gender);
+  const gender = lockedGender ?? parseGender(searchParams.gender);
   const typeSlug = searchParams.type?.trim() || undefined;
   const sizes = searchParams.sizes?.split(",").filter(Boolean) ?? [];
   const page = Math.max(1, Number(searchParams.page ?? 1) || 1);
@@ -82,10 +104,7 @@ export default async function CategoryPage({
 
   // Сукні лише для дівчаток — ігноруємо type=dresses при gender=BOY
   const typeAllowed =
-    productType &&
-    !(productType.girlOnly && gender === "BOY")
-      ? productType
-      : null;
+    productType && !(productType.girlOnly && gender === "BOY") ? productType : null;
 
   const where: Prisma.ProductWhereInput = {
     ...(categoryId ? { categoryId } : {}),
@@ -138,26 +157,17 @@ export default async function CategoryPage({
   const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const to = Math.min(page * PAGE_SIZE, total);
 
-  const headline =
-    params.slug === "teens"
-      ? gender === "BOY"
-        ? "Підлітки · Хлопчики"
-        : gender === "GIRL"
-          ? "Підлітки · Дівчатка"
-          : "Базові речі для підлітків"
-      : params.slug === "kids"
-        ? gender === "BOY"
-          ? "Малюки · Хлопчики"
-          : gender === "GIRL"
-            ? "Малюки · Дівчатка"
-            : "Одяг для малюків"
-        : params.slug === "sale"
-          ? "Розпродаж залишків"
-          : category.name;
+  const headline = category.name;
 
   const crumbs = [
     category.name,
-    gender === "BOY" ? "Хлопчики" : gender === "GIRL" ? "Дівчатка" : null,
+    !lockedGender
+      ? gender === "BOY"
+        ? "Хлопчики"
+        : gender === "GIRL"
+          ? "Дівчатка"
+          : null
+      : null,
     typeAllowed?.name ?? null,
   ].filter(Boolean);
 
@@ -190,6 +200,7 @@ export default async function CategoryPage({
         <div className="container-content flex flex-col gap-10 lg:flex-row">
           <FiltersPanel
             sizes={facetSizes}
+            lockedGender={lockedGender}
             productTypes={productTypes.map((t) => ({
               slug: t.slug,
               name: t.name,

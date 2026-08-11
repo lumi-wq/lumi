@@ -10,8 +10,8 @@ import { SearchIcon, UserIcon, HeartIcon, BagIcon } from "@/components/Icons";
 const NAV_LINKS = [
   { href: "/category/sale", label: "Розпродаж" },
   { href: "/category/new", label: "Новинки" },
-  { href: "/category/teens", label: "Підлітки (8-16)" },
-  { href: "/category/kids", label: "Малюки (2-7)" },
+  { href: "/category/girls", label: "Дівчатка" },
+  { href: "/category/boys", label: "Хлопчики" },
 ];
 
 export function Header() {
