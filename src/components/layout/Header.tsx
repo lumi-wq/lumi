@@ -8,6 +8,7 @@ import { Logo } from "./Logo";
 import { SearchIcon, UserIcon, HeartIcon, BagIcon } from "@/components/Icons";
 
 const NAV_LINKS = [
+  { href: "/category/sale", label: "Розпродаж" },
   { href: "/category/new", label: "Новинки" },
   { href: "/category/teens", label: "Підлітки (8-16)" },
   { href: "/category/kids", label: "Малюки (2-7)" },

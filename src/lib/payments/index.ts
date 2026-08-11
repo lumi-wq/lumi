@@ -1,5 +1,3 @@
-import crypto from "node:crypto";
-
 export type PaymentOrder = {
   id: string;
   number: string;
@@ -19,7 +17,7 @@ export interface PaymentProvider {
 
 const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-/** Мок-провайдер для розробки: одразу перекидає на сторінку успіху. */
+/** Мок для локальної розробки: одразу на сторінку успіху. */
 class MockProvider implements PaymentProvider {
   readonly name = "mock";
 
@@ -31,42 +29,10 @@ class MockProvider implements PaymentProvider {
   }
 }
 
-/** LiqPay: формує підписане checkout-посилання (https://www.liqpay.ua/documentation). */
-class LiqPayProvider implements PaymentProvider {
-  readonly name = "liqpay";
-
-  async createPayment(order: PaymentOrder): Promise<PaymentResult> {
-    const publicKey = process.env.LIQPAY_PUBLIC_KEY;
-    const privateKey = process.env.LIQPAY_PRIVATE_KEY;
-    if (!publicKey || !privateKey) {
-      throw new Error("LIQPAY_PUBLIC_KEY / LIQPAY_PRIVATE_KEY не налаштовані");
-    }
-    const params = {
-      version: 3,
-      public_key: publicKey,
-      action: "pay",
-      amount: order.total,
-      currency: "UAH",
-      description: order.description,
-      order_id: order.number,
-      result_url: `${siteUrl()}/checkout/success?order=${order.number}`,
-      server_url: `${siteUrl()}/api/payment/callback`,
-    };
-    const data = Buffer.from(JSON.stringify(params)).toString("base64");
-    const signature = crypto
-      .createHash("sha1")
-      .update(privateKey + data + privateKey)
-      .digest("base64");
-    return {
-      redirectUrl: `https://www.liqpay.ua/api/3/checkout?data=${encodeURIComponent(
-        data
-      )}&signature=${encodeURIComponent(signature)}`,
-      provider: this.name,
-    };
-  }
-}
-
-/** Monobank Acquiring: створює інвойс (https://api.monobank.ua/docs/acquiring.html). */
+/**
+ * Monobank Acquiring — хостована сторінка оплати з Visa/Mastercard,
+ * Apple Pay та Google Pay (https://api.monobank.ua/docs/acquiring.html).
+ */
 class MonobankProvider implements PaymentProvider {
   readonly name = "monobank";
 
@@ -87,19 +53,18 @@ class MonobankProvider implements PaymentProvider {
         webHookUrl: `${siteUrl()}/api/payment/callback`,
       }),
     });
-    if (!res.ok) throw new Error(`Monobank: ${res.status}`);
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new Error(`Monobank: ${res.status}${detail ? ` — ${detail}` : ""}`);
+    }
     const json = (await res.json()) as { pageUrl: string };
     return { redirectUrl: json.pageUrl, provider: this.name };
   }
 }
 
 export function getPaymentProvider(): PaymentProvider {
-  switch (process.env.PAYMENT_PROVIDER) {
-    case "liqpay":
-      return new LiqPayProvider();
-    case "monobank":
-      return new MonobankProvider();
-    default:
-      return new MockProvider();
+  if (process.env.PAYMENT_PROVIDER === "monobank") {
+    return new MonobankProvider();
   }
+  return new MockProvider();
 }

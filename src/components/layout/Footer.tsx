@@ -6,6 +6,7 @@ const COLUMNS = [
   {
     title: "Магазин",
     links: [
+      { label: "Розпродаж", href: "/category/sale" },
       { label: "Весь одяг", href: "/category/teens" },
       { label: "Новинки", href: "/category/new" },
       { label: "Для підлітків", href: "/category/teens" },
@@ -20,15 +21,6 @@ const COLUMNS = [
       { label: "Моє замовлення", href: "/profile" },
       { label: "Зв'язатися з нами", href: "#" },
       { label: "Наші магазини", href: "#" },
-    ],
-  },
-  {
-    title: "Еко-відповідальність",
-    links: [
-      { label: "Натуральні матеріали", href: "#" },
-      { label: "Еко-упаковка", href: "#" },
-      { label: "Чесне виробництво", href: "#" },
-      { label: "Програма обміну", href: "#" },
     ],
   },
 ];
@@ -57,7 +49,7 @@ export function Footer() {
             ))}
           </div>
         </div>
-        <div className="grid gap-10 sm:grid-cols-3">
+        <div className="grid gap-10 sm:grid-cols-2">
           {COLUMNS.map((col) => (
             <div key={col.title}>
               <h4 className="font-display text-sm font-bold uppercase tracking-wide">{col.title}</h4>
@@ -76,7 +68,7 @@ export function Footer() {
       </div>
       <div className="border-t border-white/10">
         <div className="container-content flex flex-col items-center justify-between gap-3 py-6 text-xs text-white/50 sm:flex-row">
-          <p>© 2026 LUMI Apparel Studio. Усі права захищені.</p>
+          <p>© 2026 LUMI. Усі права захищені.</p>
           <div className="flex gap-6">
             <Link href="#" className="transition hover:text-white">Конфіденційність</Link>
             <Link href="#" className="transition hover:text-white">Умови</Link>

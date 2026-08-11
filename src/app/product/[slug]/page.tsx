@@ -3,11 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toCardData } from "@/lib/types";
-import { formatPrice, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { Gallery } from "@/components/product/Gallery";
 import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { Tag } from "@/components/product/Tag";
+import { ProductPrice } from "@/components/product/ProductPrice";
 import { StarIcon } from "@/components/Icons";
 
 export const revalidate = 60;
@@ -100,14 +101,23 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
             <div>
               <div className="flex items-center gap-3">
-                {product.tag && <Tag label={product.tag} style={product.tagStyle} />}
+                {product.isSale ? (
+                  <Tag label="Розпродаж" style="dark" />
+                ) : (
+                  product.tag && <Tag label={product.tag} style={product.tagStyle} />
+                )}
                 <span className="flex items-center gap-1.5 text-sm text-obsidian/70">
                   <StarIcon className="h-4 w-4 text-cobalt" />
                   {product.rating} ({product.reviewCount} відгуків)
                 </span>
               </div>
               <h1 className="mt-4 font-display text-3xl font-black md:text-[40px]">{product.name}</h1>
-              <p className="mt-3 text-[28px] font-bold text-cobalt">{formatPrice(product.price)}</p>
+              <ProductPrice
+                price={product.price}
+                compareAtPrice={product.compareAtPrice}
+                size="lg"
+                className="mt-3"
+              />
 
               <ProductPurchase
                 product={{

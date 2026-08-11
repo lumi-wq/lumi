@@ -240,33 +240,59 @@ export default function CheckoutPage() {
           <section className="rounded-card bg-white p-6 md:p-8">
             <h2 className="font-display text-lg font-bold">3. Оплата</h2>
             <div className="mt-5 space-y-3">
-              {(
-                [
-                  { value: "card", label: "Оплата карткою онлайн", hint: "LiqPay / Monobank" },
-                  { value: "cod", label: "Післяплата", hint: "оплата при отриманні на Новій Пошті" },
-                ] as const
-              ).map((option) => (
-                <label
-                  key={option.value}
-                  className={`flex cursor-pointer items-center gap-4 rounded-input border-[1.5px] px-5 py-4 transition ${
-                    paymentMethod === option.value
-                      ? "border-cobalt bg-cobalt/5"
-                      : "border-[#E0E0E0] hover:border-obsidian"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="payment"
-                    checked={paymentMethod === option.value}
-                    onChange={() => setPaymentMethod(option.value)}
-                    className="accent-cobalt"
-                  />
-                  <span>
-                    <span className="block text-sm font-bold">{option.label}</span>
-                    <span className="block text-xs text-obsidian/60">{option.hint}</span>
+              <label
+                className={`flex cursor-pointer items-start gap-4 rounded-input border-[1.5px] px-5 py-4 transition ${
+                  paymentMethod === "card"
+                    ? "border-cobalt bg-cobalt/5"
+                    : "border-[#E0E0E0] hover:border-obsidian"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={paymentMethod === "card"}
+                  onChange={() => setPaymentMethod("card")}
+                  className="mt-1 accent-cobalt"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold">Карткою онлайн</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-obsidian/60">
+                    Visa / Mastercard (Monobank, ПриватБанк та інші банки), Apple Pay і Google Pay
                   </span>
-                </label>
-              ))}
+                  <span className="mt-3 flex flex-wrap gap-1.5">
+                    {["Visa", "Mastercard", "Apple Pay", "Google Pay"].map((label) => (
+                      <span
+                        key={label}
+                        className="rounded-md border border-black/10 bg-white px-2 py-0.5 text-[11px] font-semibold text-obsidian/70"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </span>
+                </span>
+              </label>
+
+              <label
+                className={`flex cursor-pointer items-start gap-4 rounded-input border-[1.5px] px-5 py-4 transition ${
+                  paymentMethod === "cod"
+                    ? "border-cobalt bg-cobalt/5"
+                    : "border-[#E0E0E0] hover:border-obsidian"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={paymentMethod === "cod"}
+                  onChange={() => setPaymentMethod("cod")}
+                  className="mt-1 accent-cobalt"
+                />
+                <span>
+                  <span className="block text-sm font-bold">Післяплата (Нова Пошта)</span>
+                  <span className="mt-1 block text-xs text-obsidian/60">
+                    Оплата при отриманні посилки у відділенні або поштоматі
+                  </span>
+                </span>
+              </label>
             </div>
           </section>
         </div>

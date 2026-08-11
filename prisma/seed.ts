@@ -58,11 +58,15 @@ type SeedProduct = {
   slug: string;
   name: string;
   price: number;
+  compareAtPrice?: number;
   tag?: string;
   tagStyle?: "cobalt" | "dark";
   rating: number;
   reviewCount: number;
   isFeatured?: boolean;
+  isSale?: boolean;
+  gender?: "BOY" | "GIRL";
+  typeSlug?: string;
   colors: string[];
   description: string;
 };
@@ -123,7 +127,8 @@ const TEENS: SeedProduct[] = [
   {
     slug: "vitrivka-active-shell",
     name: "Вітрівка Active Shell",
-    price: 2200,
+    price: 1760,
+    compareAtPrice: 2200,
     tag: "Водостійка",
     tagStyle: "dark",
     rating: 4.9,
@@ -136,11 +141,13 @@ const TEENS: SeedProduct[] = [
   {
     slug: "holf-u-rubchyk",
     name: "Гольф у рубчик",
-    price: 850,
+    price: 490,
+    compareAtPrice: 850,
     tag: "М'який",
     rating: 4.6,
     reviewCount: 24,
     isFeatured: true,
+    isSale: true,
     colors: ["Кремовий", "Пісочний", "Індиго"],
     description:
       "Гольф у дрібний рубчик, який приємно прилягає до тіла. Чудова база під сорочку, худі чи піджак.",
@@ -233,10 +240,12 @@ const TEENS: SeedProduct[] = [
   {
     slug: "technical-shell-parka",
     name: "Technical Shell Parka",
-    price: 2900,
+    price: 1590,
+    compareAtPrice: 2900,
     tag: "Хіт",
     rating: 4.9,
     reviewCount: 14,
+    isSale: true,
     colors: ["Графітовий", "Зелений"],
     description:
       "Функціональна парка з вітро- та вологозахистом. Багато кишень, регульований низ.",
@@ -244,9 +253,11 @@ const TEENS: SeedProduct[] = [
   {
     slug: "svitshot-bazovyi",
     name: "Світшот базовий",
-    price: 950,
+    price: 550,
+    compareAtPrice: 950,
     rating: 4.5,
     reviewCount: 20,
+    isSale: true,
     colors: ["Кремовий", "Яскраво-синій", "Пісочний"],
     description:
       "Класичний світшот прямого крою. Щільний футер, манжети в рубчик.",
@@ -257,11 +268,13 @@ const KIDS: SeedProduct[] = [
   {
     slug: "dytiacha-zymova-kurtka",
     name: "Дитяча зимова куртка",
-    price: 2450,
+    price: 1450,
+    compareAtPrice: 2450,
     tag: "Тепла",
     tagStyle: "dark",
     rating: 4.9,
     reviewCount: 31,
+    isSale: true,
     colors: ["Синій", "Зелений"],
     description:
       "Тепла зимова куртка з утеплювачем, капюшоном зі штучним хутром та манжетами-резинками. Витримує до -20°C.",
@@ -377,6 +390,7 @@ async function main() {
   await prisma.review.deleteMany();
   await prisma.productVariant.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.productType.deleteMany();
   await prisma.category.deleteMany();
   await prisma.promoCode.deleteMany();
   await prisma.otpCode.deleteMany();
@@ -404,6 +418,22 @@ async function main() {
     },
   });
 
+  console.log("Типи товарів ...");
+  const typeDefs = [
+    { slug: "outerwear", name: "Верхній одяг", sortOrder: 10, girlOnly: false },
+    { slug: "sportswear", name: "Спортивні костюми", sortOrder: 20, girlOnly: false },
+    { slug: "tshirts", name: "Футболки", sortOrder: 30, girlOnly: false },
+    { slug: "pants", name: "Штани", sortOrder: 40, girlOnly: false },
+    { slug: "dresses", name: "Сукні", sortOrder: 50, girlOnly: true },
+    { slug: "footwear", name: "Взуття", sortOrder: 60, girlOnly: false },
+    { slug: "accessories", name: "Аксесуари", sortOrder: 70, girlOnly: false },
+  ];
+  const typesBySlug = new Map<string, string>();
+  for (const t of typeDefs) {
+    const row = await prisma.productType.create({ data: t });
+    typesBySlug.set(row.slug, row.id);
+  }
+
   console.log("Товари ...");
   const createProducts = async (
     items: SeedProduct[],
@@ -413,20 +443,32 @@ async function main() {
   ) => {
     for (let i = 0; i < items.length; i++) {
       const p = items[i];
+      const gender = p.gender ?? (i % 2 === 0 ? "BOY" : "GIRL");
+      const defaultType =
+        gender === "GIRL" && i % 5 === 0
+          ? "dresses"
+          : (["tshirts", "pants", "outerwear", "sportswear", "footwear", "accessories"] as const)[
+              i % 6
+            ];
+      const typeSlug = p.typeSlug ?? defaultType;
       const product = await prisma.product.create({
         data: {
           slug: p.slug,
           name: p.name,
           description: p.description,
           price: p.price,
+          compareAtPrice: p.compareAtPrice ?? null,
           images: imagesFor(offset + i),
           tag: p.tag ?? null,
           tagStyle: p.tagStyle ?? "cobalt",
           rating: p.rating,
           reviewCount: p.reviewCount,
           isFeatured: p.isFeatured ?? false,
+          isSale: p.isSale ?? false,
+          gender,
           materials: MATERIALS,
           categoryId,
+          productTypeId: typesBySlug.get(typeSlug) ?? typesBySlug.get("tshirts")!,
           createdAt: new Date(Date.now() - i * 86400000 * 3),
           variants: {
             create: sizes.flatMap((size) =>

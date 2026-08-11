@@ -2,32 +2,34 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Webhook від платіжних систем (LiqPay server_url / Monobank webHookUrl).
- * Спрощена обробка: позначає замовлення оплаченим за номером.
+ * Webhook від Monobank Acquiring (webHookUrl).
+ * Позначає замовлення оплаченим лише при успішному статусі.
  */
 export async function POST(req: Request) {
   try {
-    const contentType = req.headers.get("content-type") ?? "";
-    let orderNumber: string | undefined;
-
-    if (contentType.includes("application/json")) {
-      const json = await req.json();
-      orderNumber = json.reference ?? json.order_id;
-    } else {
-      const form = await req.formData();
-      const data = form.get("data");
-      if (typeof data === "string") {
-        const decoded = JSON.parse(Buffer.from(data, "base64").toString("utf8"));
-        orderNumber = decoded.order_id;
-      }
+    const json = await req.json().catch(() => null);
+    if (!json || typeof json !== "object") {
+      return NextResponse.json({ ok: false }, { status: 400 });
     }
 
-    if (orderNumber) {
+    const orderNumber =
+      typeof json.reference === "string"
+        ? json.reference
+        : typeof json.order_id === "string"
+          ? json.order_id
+          : undefined;
+
+    const status = typeof json.status === "string" ? json.status.toLowerCase() : "";
+    const success =
+      !status || status === "success" || status === "processed" || status === "paid";
+
+    if (orderNumber && success) {
       await prisma.order.updateMany({
         where: { number: orderNumber },
         data: { paymentStatus: "paid", status: "PAID" },
       });
     }
+
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: false }, { status: 400 });

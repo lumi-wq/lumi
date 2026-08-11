@@ -91,7 +91,7 @@ export function OrdersManager() {
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-[12px] uppercase text-obsidian/50">
-                  {order.paymentMethod === "card" ? "Картка" : "Післяплата"} /{" "}
+                  {order.paymentMethod === "card" ? "Картка онлайн" : "Післяплата (НП)"} /{" "}
                   {order.paymentStatus === "paid" ? "оплачено" : "очікує"}
                 </span>
                 <select
@@ -158,8 +158,13 @@ export function OrdersManager() {
 
             <ul className="mt-3 text-[13px] text-obsidian/70">
               {order.items.map((item) => (
-                <li key={item.id}>
-                  {item.name} — {item.color} / {item.size} × {item.quantity}
+                <li key={item.id} className="flex items-center gap-2">
+                  <span
+                    className="inline-block h-3 w-3 rounded-full border border-black/10"
+                    style={{ backgroundColor: item.color }}
+                    aria-hidden
+                  />
+                  {item.name} — {item.size} × {item.quantity}
                 </li>
               ))}
             </ul>
