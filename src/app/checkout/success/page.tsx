@@ -33,7 +33,7 @@ export default async function SuccessPage({
               Замовлення <b className="text-obsidian">#{order.number}</b> прийнято.
               {order.paymentStatus === "paid"
                 ? " Оплату отримано."
-                : " Оплата при отриманні на Новій Пошті."}
+                : " Очікуємо підтвердження оплати карткою."}
             </p>
             <div className="mt-6 rounded-xl bg-chalk p-5 text-left text-sm">
               <p className="flex justify-between">
