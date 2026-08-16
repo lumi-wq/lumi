@@ -1,18 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useCart, cartTotals } from "@/store/cart";
 import { formatPrice } from "@/lib/format";
 
-type City = { ref: string; name: string };
+type City = { ref: string; name: string; cityRef: string };
 type Warehouse = { ref: string; description: string };
-
+type ShippingQuote = {
+  shipping: number;
+  npCost: number;
+  weightKg: number;
+  dispatchDate: string;
+  deliveryDate: string | null;
+  deliveryDateLabel: string | null;
+};
 export default function CheckoutPage() {
-  const router = useRouter();
-  const { items, promo, clear } = useCart();
+  const { items, clear } = useCart();
   const [mounted, setMounted] = useState(false);
 
   const [form, setForm] = useState({
@@ -24,7 +29,6 @@ export default function CheckoutPage() {
   const [cityQuery, setCityQuery] = useState("");
   const [city, setCity] = useState<City | null>(null);
   const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "cod">("card");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showCityList, setShowCityList] = useState(false);
@@ -59,6 +63,36 @@ export default function CheckoutPage() {
     enabled: !!city,
   });
 
+  const shippingItems = items.map((i) => ({ variantId: i.variantId, quantity: i.qty }));
+
+  const {
+    data: quote,
+    isFetching: quoteLoading,
+    isError: quoteError,
+  } = useQuery<ShippingQuote>({
+    queryKey: [
+      "np-shipping",
+      city?.cityRef,
+      warehouse?.ref,
+      items.map((i) => `${i.variantId}:${i.qty}`).join("|"),
+    ],
+    queryFn: async () => {
+      const res = await fetch("/api/novaposhta/shipping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cityRef: city!.cityRef,
+          items: shippingItems,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Не вдалося розрахувати доставку");
+      return json.quote as ShippingQuote;
+    },
+    enabled: Boolean(city?.cityRef && warehouse?.ref && items.length > 0),
+    staleTime: 60_000,
+  });
+
   if (!mounted) return <div className="container-content py-20" />;
 
   if (items.length === 0) {
@@ -72,17 +106,20 @@ export default function CheckoutPage() {
     );
   }
 
-  const totals = cartTotals(items, promo);
+  const shippingFee = quote?.shipping ?? 0;
+  const totals = cartTotals(items, warehouse && quote ? shippingFee : 0);
   const canSubmit =
     form.firstName.trim() &&
     form.lastName.trim() &&
     form.phone.length === 9 &&
     city &&
-    warehouse;
+    warehouse &&
+    quote &&
+    !quoteLoading;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || !city || !warehouse) return;
     setSubmitting(true);
     setError("");
     try {
@@ -92,30 +129,25 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           ...form,
           phone: `+380${form.phone}`,
-          city: city!.name,
-          warehouse: warehouse!.description,
-          paymentMethod,
-          promoCode: promo?.code,
+          city: city.name,
+          cityRef: city.cityRef,
+          warehouse: warehouse.description,
+          paymentMethod: "card",
           items: items.map((i) => ({ variantId: i.variantId, quantity: i.qty })),
         }),
       });
       const order = await orderRes.json();
       if (!orderRes.ok) throw new Error(order.error ?? "Не вдалося створити замовлення");
 
-      if (paymentMethod === "card") {
-        const payRes = await fetch("/api/payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: order.orderId }),
-        });
-        const payment = await payRes.json();
-        if (!payRes.ok) throw new Error(payment.error ?? "Помилка оплати");
-        clear();
-        window.location.href = payment.redirectUrl;
-      } else {
-        clear();
-        router.push(`/checkout/success?order=${order.number}`);
-      }
+      const payRes = await fetch("/api/payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.orderId }),
+      });
+      const payment = await payRes.json();
+      if (!payRes.ok) throw new Error(payment.error ?? "Помилка оплати");
+      clear();
+      window.location.href = payment.redirectUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Сталася помилка");
       setSubmitting(false);
@@ -235,64 +267,41 @@ export default function CheckoutPage() {
                 ))}
               </select>
             )}
+            {warehouse && (
+              <div className="mt-4 rounded-xl bg-chalk/80 px-4 py-3 text-sm text-obsidian/80">
+                {quoteLoading && <p>Рахуємо доставку...</p>}
+                {quoteError && (
+                  <p className="text-red-600">Не вдалося розрахувати доставку. Спробуйте ще раз.</p>
+                )}
+                {quote && !quoteLoading && (
+                  <p>
+                    Орієнтовна доставка:{" "}
+                    <span className="font-semibold text-obsidian">
+                      {quote.deliveryDateLabel ?? quote.deliveryDate ?? "уточнюється"}
+                    </span>
+                  </p>
+                )}
+              </div>
+            )}
           </section>
 
           <section className="rounded-card bg-white p-6 md:p-8">
             <h2 className="font-display text-lg font-bold">3. Оплата</h2>
-            <div className="mt-5 space-y-3">
-              <label
-                className={`flex cursor-pointer items-start gap-4 rounded-input border-[1.5px] px-5 py-4 transition ${
-                  paymentMethod === "card"
-                    ? "border-cobalt bg-cobalt/5"
-                    : "border-[#E0E0E0] hover:border-obsidian"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={paymentMethod === "card"}
-                  onChange={() => setPaymentMethod("card")}
-                  className="mt-1 accent-cobalt"
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold">Карткою онлайн</span>
-                  <span className="mt-1 block text-xs leading-relaxed text-obsidian/60">
-                    Visa / Mastercard (Monobank, ПриватБанк та інші банки), Apple Pay і Google Pay
+            <div className="mt-5 rounded-input border-[1.5px] border-cobalt bg-cobalt/5 px-5 py-4">
+              <p className="text-sm font-bold">Карткою онлайн (plata by mono)</p>
+              <p className="mt-1 text-xs leading-relaxed text-obsidian/60">
+                Visa / Mastercard будь-якого банку, Apple Pay і Google Pay через Monobank
+              </p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {["Visa", "Mastercard", "Apple Pay", "Google Pay"].map((label) => (
+                  <span
+                    key={label}
+                    className="rounded-md border border-black/10 bg-white px-2 py-0.5 text-[11px] font-semibold text-obsidian/70"
+                  >
+                    {label}
                   </span>
-                  <span className="mt-3 flex flex-wrap gap-1.5">
-                    {["Visa", "Mastercard", "Apple Pay", "Google Pay"].map((label) => (
-                      <span
-                        key={label}
-                        className="rounded-md border border-black/10 bg-white px-2 py-0.5 text-[11px] font-semibold text-obsidian/70"
-                      >
-                        {label}
-                      </span>
-                    ))}
-                  </span>
-                </span>
-              </label>
-
-              <label
-                className={`flex cursor-pointer items-start gap-4 rounded-input border-[1.5px] px-5 py-4 transition ${
-                  paymentMethod === "cod"
-                    ? "border-cobalt bg-cobalt/5"
-                    : "border-[#E0E0E0] hover:border-obsidian"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={paymentMethod === "cod"}
-                  onChange={() => setPaymentMethod("cod")}
-                  className="mt-1 accent-cobalt"
-                />
-                <span>
-                  <span className="block text-sm font-bold">Післяплата (Нова Пошта)</span>
-                  <span className="mt-1 block text-xs text-obsidian/60">
-                    Оплата при отриманні посилки у відділенні або поштоматі
-                  </span>
-                </span>
-              </label>
+                ))}
+              </div>
             </div>
           </section>
         </div>
@@ -314,25 +323,37 @@ export default function CheckoutPage() {
               <dt className="text-obsidian/70">Сума товарів</dt>
               <dd className="font-semibold">{formatPrice(totals.subtotal)}</dd>
             </div>
-            {totals.discount > 0 && (
-              <div className="flex justify-between text-cobalt">
-                <dt>Знижка ({promo?.code})</dt>
-                <dd className="font-semibold">−{formatPrice(totals.discount)}</dd>
-              </div>
-            )}
             <div className="flex justify-between">
               <dt className="text-obsidian/70">Доставка</dt>
               <dd className="text-[13px] font-bold uppercase">
-                {totals.shipping === 0 ? "Безкоштовно" : formatPrice(totals.shipping)}
+                {!warehouse
+                  ? "Оберіть відділення"
+                  : quoteLoading
+                    ? "..."
+                    : totals.shipping === 0
+                      ? "Безкоштовно"
+                      : formatPrice(totals.shipping)}
               </dd>
             </div>
+            {quote?.deliveryDateLabel && (
+              <div className="flex justify-between gap-3 text-xs text-obsidian/60">
+                <dt>Орієнтовно прибуде</dt>
+                <dd className="text-right font-medium text-obsidian">{quote.deliveryDateLabel}</dd>
+              </div>
+            )}
           </dl>
           <div className="mt-5 flex items-baseline justify-between border-t border-obsidian/10 pt-5">
             <span className="font-display text-lg font-bold">Разом</span>
-            <span className="text-2xl font-bold text-cobalt">{formatPrice(totals.total)}</span>
+            <span className="text-2xl font-bold text-cobalt">
+              {warehouse && quote && !quoteLoading ? formatPrice(totals.total) : "—"}
+            </span>
           </div>
           {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-          <button type="submit" disabled={!canSubmit || submitting} className="btn-primary mt-6 w-full">
+          <button
+            type="submit"
+            disabled={!canSubmit || submitting}
+            className="btn-primary mt-6 w-full"
+          >
             {submitting ? "Опрацьовуємо..." : "Підтвердити замовлення"}
           </button>
           <p className="mt-3 text-center text-xs text-obsidian/50">

@@ -10,7 +10,6 @@ export async function GET() {
       email: user.email,
       name: user.name,
       isAdmin: user.isAdmin,
-      discountPercent: user.discountPercent,
     },
   });
 }

@@ -1,79 +1,67 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import type { Prisma } from "@prisma/client";
-import { ProductGender } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { toCardData } from "@/lib/types";
-import { productCountLabel } from "@/lib/format";
-import { ProductGrid } from "@/components/product/ProductGrid";
-import { FiltersPanel } from "@/components/catalog/FiltersPanel";
-import { SortSelect } from "@/components/catalog/SortSelect";
-import { Pagination } from "@/components/catalog/Pagination";
+import { CatalogView } from "@/components/catalog/CatalogView";
+import {
+  BASE_COLLECTIONS,
+  collectionFromLanding,
+  hasIndexableFilters,
+  loadCatalogListing,
+  type CatalogCollection,
+  type CatalogSearchParams,
+} from "@/lib/catalog";
+import { getRootLanding, listRootLandingSlugs } from "@/lib/seo-landings";
+import { canonicalMetadata, listingTitle, NOINDEX_FOLLOW } from "@/lib/seo";
 
-const PAGE_SIZE = 9;
+export const revalidate = 60;
 
-const VIRTUAL_CATEGORIES: Record<
-  string,
-  {
-    slug: string;
-    name: string;
-    description: string;
-    gender?: ProductGender;
-  }
-> = {
-  new: {
-    slug: "new",
-    name: "Новинки",
-    description: "Свіжі надходження LUMI — одяг для дітей 6–16 років.",
-  },
-  sale: {
-    slug: "sale",
-    name: "Розпродаж",
-    description: "Великі знижки на залишки сезону — поки є розміри.",
-  },
-  girls: {
-    slug: "girls",
-    name: "Дівчатка",
-    description: "Одяг для дівчаток 6–16 років — зручно, стильно, на кожен день.",
-    gender: "GIRL",
-  },
-  boys: {
-    slug: "boys",
-    name: "Хлопчики",
-    description: "Одяг для хлопчиків 6–16 років — база, спорт і верхній одяг.",
-    gender: "BOY",
-  },
-};
-
-type SearchParams = {
-  gender?: string;
-  type?: string;
-  sizes?: string;
-  sort?: string;
-  page?: string;
-};
-
-function parseGender(value?: string): ProductGender | undefined {
-  if (value === "BOY" || value === "GIRL") return value;
-  return undefined;
+async function getCollection(slug: string): Promise<CatalogCollection | null> {
+  if (slug in BASE_COLLECTIONS) return BASE_COLLECTIONS[slug];
+  const landing = getRootLanding(slug);
+  if (landing) return collectionFromLanding(landing);
+  const row = await prisma.category.findUnique({ where: { slug } });
+  if (!row) return null;
+  return {
+    slug: row.slug,
+    path: `/category/${row.slug}`,
+    name: row.name,
+    h1: row.name,
+    description: row.description,
+    categoryId: row.id,
+  };
 }
 
-async function getCategory(slug: string) {
-  if (slug in VIRTUAL_CATEGORIES) return VIRTUAL_CATEGORIES[slug];
-  return prisma.category.findUnique({ where: { slug } });
+export async function generateStaticParams() {
+  const fromDb = await prisma.category.findMany({ select: { slug: true } });
+  return [
+    ...Object.keys(BASE_COLLECTIONS).map((slug) => ({ slug })),
+    ...listRootLandingSlugs().map((slug) => ({ slug })),
+    ...fromDb.map((c) => ({ slug: c.slug })),
+  ];
 }
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: { slug: string };
+  searchParams: CatalogSearchParams;
 }): Promise<Metadata> {
-  const category = await getCategory(params.slug);
-  if (!category) return {};
+  const collection = await getCollection(params.slug);
+  if (!collection) return {};
+  const page = Math.max(1, Number(searchParams.page ?? 1) || 1);
+  const canonicalPath = page > 1 ? `${collection.path}?page=${page}` : collection.path;
+  const filtered = hasIndexableFilters(collection, searchParams);
   return {
-    title: category.name,
-    description: category.description,
-    openGraph: { title: `${category.name} | LUMI`, description: category.description },
+    title: listingTitle(collection.h1),
+    description: collection.description,
+    ...canonicalMetadata(canonicalPath),
+    ...(filtered ? NOINDEX_FOLLOW : {}),
+    openGraph: {
+      ...canonicalMetadata(canonicalPath).openGraph,
+      title: `${collection.h1} | LUMI`,
+      description: collection.description,
+    },
   };
 }
 
@@ -82,148 +70,25 @@ export default async function CategoryPage({
   searchParams,
 }: {
   params: { slug: string };
-  searchParams: SearchParams;
+  searchParams: CatalogSearchParams;
 }) {
-  const category = await getCategory(params.slug);
-  if (!category) notFound();
+  const collection = await getCollection(params.slug);
+  if (!collection) notFound();
 
-  const isVirtualNew = params.slug === "new";
-  const isVirtualSale = params.slug === "sale";
-  const lockedGender =
-    "gender" in category ? category.gender : undefined;
-  const categoryId = "id" in category ? category.id : undefined;
+  const listing = await loadCatalogListing(collection, searchParams);
+  const typeNavParent =
+    collection.slug === "girls" || collection.slug === "boys" || collection.slug === "accessories"
+      ? collection.slug
+      : undefined;
 
-  const gender = lockedGender ?? parseGender(searchParams.gender);
-  const typeSlug = searchParams.type?.trim() || undefined;
-  const sizes = searchParams.sizes?.split(",").filter(Boolean) ?? [];
-  const page = Math.max(1, Number(searchParams.page ?? 1) || 1);
-
-  const productType = typeSlug
-    ? await prisma.productType.findUnique({ where: { slug: typeSlug } })
-    : null;
-
-  // Сукні лише для дівчаток — ігноруємо type=dresses при gender=BOY
-  const typeAllowed =
-    productType && !(productType.girlOnly && gender === "BOY") ? productType : null;
-
-  const where: Prisma.ProductWhereInput = {
-    ...(categoryId ? { categoryId } : {}),
-    ...(isVirtualSale ? { isSale: true } : {}),
-    ...(gender ? { gender } : {}),
-    ...(typeAllowed ? { productTypeId: typeAllowed.id } : {}),
-    ...(sizes.length ? { variants: { some: { size: { in: sizes } } } } : {}),
-  };
-
-  const orderBy: Prisma.ProductOrderByWithRelationInput[] =
-    searchParams.sort === "price-asc"
-      ? [{ price: "asc" }]
-      : searchParams.sort === "price-desc"
-        ? [{ price: "desc" }]
-        : searchParams.sort === "newest" || isVirtualNew
-          ? [{ createdAt: "desc" }]
-          : isVirtualSale
-            ? [{ price: "asc" }]
-            : [{ isFeatured: "desc" }, { rating: "desc" }];
-
-  const baseFacetWhere: Prisma.ProductWhereInput = {
-    ...(categoryId ? { categoryId } : {}),
-    ...(isVirtualSale ? { isSale: true } : {}),
-    ...(gender ? { gender } : {}),
-    ...(typeAllowed ? { productTypeId: typeAllowed.id } : {}),
-  };
-
-  const [total, products, facetVariants, productTypes] = await Promise.all([
-    prisma.product.count({ where }),
-    prisma.product.findMany({
-      where,
-      orderBy,
-      include: { variants: true },
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-    }),
-    prisma.productVariant.findMany({
-      where: { product: baseFacetWhere },
-      select: { size: true },
-      distinct: ["size"],
-    }),
-    prisma.productType.findMany({ orderBy: { sortOrder: "asc" } }),
-  ]);
-
-  const facetSizes = Array.from(new Set(facetVariants.map((v) => v.size))).sort(
-    (a, b) => parseInt(a) - parseInt(b)
-  );
-
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const to = Math.min(page * PAGE_SIZE, total);
-
-  const headline = category.name;
-
-  const crumbs = [
-    category.name,
-    !lockedGender
-      ? gender === "BOY"
-        ? "Хлопчики"
-        : gender === "GIRL"
-          ? "Дівчатка"
-          : null
-      : null,
-    typeAllowed?.name ?? null,
-  ].filter(Boolean);
+  const crumbs = [{ name: collection.name, href: collection.path }];
 
   return (
-    <>
-      <section className="bg-white">
-        <div className="container-content py-12">
-          <p className="text-xs font-semibold uppercase tracking-widest text-obsidian/50">
-            Колекція / {crumbs.join(" / ")}
-          </p>
-          <h1 className="mt-3 font-display text-3xl font-black md:text-[40px]">
-            {typeAllowed ? typeAllowed.name : headline}
-          </h1>
-          <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-obsidian/70">
-            {category.description}
-          </p>
-        </div>
-      </section>
-
-      <section className="border-y border-black/5 bg-chalk">
-        <div className="container-content flex items-center justify-between py-3 text-sm">
-          <p className="text-obsidian/70">
-            Показано {from}-{to} з {productCountLabel(total)}
-          </p>
-          <SortSelect />
-        </div>
-      </section>
-
-      <section className="py-12">
-        <div className="container-content flex flex-col gap-10 lg:flex-row">
-          <FiltersPanel
-            sizes={facetSizes}
-            lockedGender={lockedGender}
-            productTypes={productTypes.map((t) => ({
-              slug: t.slug,
-              name: t.name,
-              girlOnly: t.girlOnly,
-            }))}
-          />
-          <div className="flex-1">
-            {products.length > 0 ? (
-              <>
-                <ProductGrid products={products.map(toCardData)} />
-                <Pagination page={page} totalPages={totalPages} />
-              </>
-            ) : (
-              <div className="rounded-card bg-white p-16 text-center">
-                <h3 className="font-display text-xl font-bold">Оновлюємо асортимент</h3>
-                <p className="mt-2 text-sm text-obsidian/60">
-                  Товари скоро зʼявляться — ми якраз наповнюємо каталог.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-    </>
+    <CatalogView
+      collection={collection}
+      listing={listing}
+      crumbs={crumbs}
+      typeNavParent={typeNavParent}
+    />
   );
 }

@@ -2,55 +2,63 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import {
+  imagePath,
+  normalizeProductColors,
+  productColorsSchema,
+} from "@/lib/product-colors";
+import { expireFeaturedProducts } from "@/lib/featured";
 
 export async function GET() {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Заборонено" }, { status: 403 });
+  await expireFeaturedProducts();
   const products = await prisma.product.findMany({
-    include: { category: true, productType: true, variants: true },
+    include: {
+      category: true,
+      productType: true,
+      colors: { orderBy: { sortOrder: "asc" } },
+      variants: true,
+    },
     orderBy: { createdAt: "desc" },
   });
   return NextResponse.json({ products });
 }
 
-const imagePath = z
-  .string()
-  .min(1)
-  .refine(
-    (v) => v.startsWith("/uploads/") || /^https?:\/\//.test(v),
-    "Невірний шлях зображення"
-  );
-
-const hexColor = z
-  .string()
-  .regex(/^#[0-9A-Fa-f]{6}$/, "Невірний HEX кольору");
-
-const productSchema = z.object({
-  name: z.string().min(1),
-  slug: z.string().min(1),
-  description: z.string().min(1),
-  price: z.number().int().min(1),
-  compareAtPrice: z.number().int().min(1).nullable().optional(),
-  categoryId: z.string().min(1),
-  images: z.array(imagePath).min(1),
-  tag: z.string().nullable().optional(),
-  tagStyle: z.string().optional(),
-  materials: z.string().optional(),
-  isFeatured: z.boolean().optional(),
-  isSale: z.boolean().optional(),
-  gender: z.enum(["BOY", "GIRL"]),
-  productTypeId: z.string().min(1),
-  sizes: z.array(z.string().min(1)).min(1),
-  colors: z.array(z.object({ color: z.string().min(1), colorHex: hexColor })).min(1),
-  stock: z.number().int().min(0).default(10),
-}).superRefine((data, ctx) => {
-  if (data.compareAtPrice != null && data.compareAtPrice <= data.price) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["compareAtPrice"],
-      message: "Стара ціна має бути вищою за поточну",
-    });
-  }
-});
+const productSchema = z
+  .object({
+    name: z.string().min(1),
+    slug: z.string().min(1),
+    description: z.string().min(1),
+    price: z.number().int().min(1),
+    compareAtPrice: z.number().int().min(1).nullable().optional(),
+    categoryId: z.string().min(1),
+    images: z.array(imagePath).optional(),
+    tag: z.string().nullable().optional(),
+    tagStyle: z.string().optional(),
+    materials: z.string().optional(),
+    isFeatured: z.boolean().optional(),
+    isSale: z.boolean().optional(),
+    gender: z.enum(["BOY", "GIRL"]),
+    productTypeId: z.string().min(1),
+    colors: productColorsSchema,
+  })
+  .superRefine((data, ctx) => {
+    if (data.compareAtPrice != null && data.compareAtPrice <= data.price) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["compareAtPrice"],
+        message: "Стара ціна має бути вищою за поточну",
+      });
+    }
+    const normalized = normalizeProductColors(data.colors);
+    if (normalized.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["colors"],
+        message: "Додайте хоча б один колір з фото та розмірами",
+      });
+    }
+  });
 
 export async function POST(req: Request) {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Заборонено" }, { status: 403 });
@@ -59,32 +67,69 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Невірні дані товару" }, { status: 400 });
   }
-  const { sizes, colors, stock, ...data } = parsed.data;
+  const { colors: rawColors, images: _ignored, ...data } = parsed.data;
+  const colors = normalizeProductColors(rawColors);
+  if (colors.length === 0) {
+    return NextResponse.json({ error: "Додайте колір з фото та розмірами" }, { status: 400 });
+  }
 
   const productType = await prisma.productType.findUnique({ where: { id: data.productTypeId } });
   if (!productType) {
     return NextResponse.json({ error: "Категорію не знайдено" }, { status: 400 });
   }
-  if (productType.girlOnly && data.gender !== "GIRL") {
+  if (productType.girlOnly && !productType.unisex && data.gender !== "GIRL") {
     return NextResponse.json(
       { error: `«${productType.name}» доступні лише для дівчаток` },
       { status: 400 }
     );
   }
 
-  const normalizedColors = colors.map((c) => {
-    const hex = c.colorHex.toUpperCase();
-    return { color: hex, colorHex: hex };
-  });
-  const product = await prisma.product.create({
-    data: {
-      ...data,
-      variants: {
-        create: sizes.flatMap((size) =>
-          normalizedColors.map((c) => ({ size, color: c.color, colorHex: c.colorHex, stock }))
-        ),
+  const previewImages = colors[0].images;
+  if (data.isFeatured && data.isSale) {
+    return NextResponse.json(
+      { error: "Товар не може бути одночасно в «Новинках» і «Розпродажі»" },
+      { status: 400 }
+    );
+  }
+  const isFeatured = Boolean(data.isFeatured);
+  const isSale = Boolean(data.isSale);
+
+  const product = await prisma.$transaction(async (tx) => {
+    const created = await tx.product.create({
+      data: {
+        ...data,
+        isFeatured,
+        isSale,
+        featuredAt: isFeatured ? new Date() : null,
+        images: previewImages,
       },
-    },
+    });
+
+    for (let i = 0; i < colors.length; i++) {
+      const c = colors[i];
+      const colorRow = await tx.productColor.create({
+        data: {
+          productId: created.id,
+          name: c.name,
+          colorHex: c.colorHex,
+          images: c.images,
+          sortOrder: i,
+        },
+      });
+      await tx.productVariant.createMany({
+        data: c.sizes.map((s) => ({
+          productId: created.id,
+          colorId: colorRow.id,
+          size: s.size,
+          color: c.name,
+          colorHex: c.colorHex,
+          stock: s.stock,
+        })),
+      });
+    }
+
+    return created;
   });
+
   return NextResponse.json({ product }, { status: 201 });
 }

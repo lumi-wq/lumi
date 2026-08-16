@@ -1,4 +1,3 @@
-export const FREE_SHIPPING_THRESHOLD = 1500;
 export const SHIPPING_FEE = 80;
 
 export function formatPrice(value: number): string {

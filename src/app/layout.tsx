@@ -5,6 +5,9 @@ import { Analytics } from "@vercel/analytics/next";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Providers } from "@/components/Providers";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { absoluteUrl, getSiteUrl } from "@/lib/site";
+import { BRAND, BRAND_EMAIL, BRAND_LEGAL } from "@/lib/seo";
 import "./globals.css";
 
 // Gabarito та Geist не підтримують кирилицю, тому підключаємо
@@ -14,17 +17,49 @@ const manrope = Manrope({ subsets: ["latin", "cyrillic"], variable: "--font-manr
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(getSiteUrl()),
   title: {
-    default: "LUMI — стильний одяг для дітей 6–16",
+    default: "LUMI — одяг для дітей 6–16 років купити в Україні",
     template: "%s | LUMI",
   },
   description:
-    "Одяг для дітей віком від 6 до 16 років з натуральних матеріалів. Зручно, стильно, якісно. Безкоштовна доставка від 1 500 ₴.",
+    "Інтернет-магазин дитячого та підліткового одягу 6–16 років. Доставка Новою Поштою по Україні, оплата на сайті або післяплата.",
   openGraph: {
-    siteName: "LUMI",
+    siteName: BRAND,
     locale: "uk_UA",
     type: "website",
+  },
+  twitter: { card: "summary_large_image" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+};
+
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: BRAND,
+  legalName: BRAND_LEGAL,
+  url: getSiteUrl(),
+  email: BRAND_EMAIL,
+  areaServed: "UA",
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: BRAND,
+  url: getSiteUrl(),
+  inLanguage: "uk-UA",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${absoluteUrl("/search")}?q={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
   },
 };
 
@@ -32,6 +67,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="uk" className={`${gabarito.variable} ${manrope.variable} ${GeistSans.variable} ${inter.variable}`}>
       <body>
+        <JsonLd data={orgJsonLd} />
+        <JsonLd data={websiteJsonLd} />
         <Providers>
           <Header />
           <main className="min-h-[60vh]">{children}</main>

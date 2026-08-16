@@ -40,7 +40,7 @@ const imagesFor = (i: number) => [
   u(POOL[(i + 3) % POOL.length]),
 ];
 
-const SIZES_6_16 = ["6 років", "8 років", "10 років", "12 років", "14 років", "16 років"];
+const SIZES_HEIGHT = ["116 см", "122 см", "128 см", "134 см", "140 см", "146 см", "152 см", "158 см", "164 см", "170 см", "176 см"];
 
 const COLORS: Record<string, string> = {
   "Яскраво-синій": "#3B5BFF",
@@ -391,7 +391,6 @@ async function main() {
   await prisma.product.deleteMany();
   await prisma.productType.deleteMany();
   await prisma.category.deleteMany();
-  await prisma.promoCode.deleteMany();
   await prisma.otpCode.deleteMany();
   await prisma.newsletterSubscriber.deleteMany();
   await prisma.user.deleteMany();
@@ -409,13 +408,16 @@ async function main() {
 
   console.log("Типи товарів ...");
   const typeDefs = [
-    { slug: "outerwear", name: "Верхній одяг", sortOrder: 10, girlOnly: false },
-    { slug: "sportswear", name: "Спортивні костюми", sortOrder: 20, girlOnly: false },
-    { slug: "tshirts", name: "Футболки", sortOrder: 30, girlOnly: false },
-    { slug: "pants", name: "Штани", sortOrder: 40, girlOnly: false },
-    { slug: "dresses", name: "Сукні", sortOrder: 50, girlOnly: true },
-    { slug: "footwear", name: "Взуття", sortOrder: 60, girlOnly: false },
-    { slug: "accessories", name: "Аксесуари", sortOrder: 70, girlOnly: false },
+    { slug: "outerwear", name: "Верхній одяг", sortOrder: 10, girlOnly: false, unisex: false },
+    { slug: "sportswear", name: "Спортивні костюми", sortOrder: 20, girlOnly: false, unisex: false },
+    { slug: "tshirts", name: "Футболки", sortOrder: 30, girlOnly: false, unisex: false },
+    { slug: "pants", name: "Штани", sortOrder: 40, girlOnly: false, unisex: false },
+    { slug: "dresses", name: "Сукні", sortOrder: 50, girlOnly: true, unisex: false },
+    { slug: "footwear", name: "Взуття", sortOrder: 60, girlOnly: false, unisex: false },
+    { slug: "hats", name: "Шапки", sortOrder: 70, girlOnly: false, unisex: false },
+    { slug: "caps", name: "Кепки", sortOrder: 75, girlOnly: false, unisex: false },
+    { slug: "bags", name: "Сумки", sortOrder: 80, girlOnly: false, unisex: false },
+    { slug: "glasses", name: "Окуляри", sortOrder: 90, girlOnly: false, unisex: true },
   ];
   const typesBySlug = new Map<string, string>();
   for (const t of typeDefs) {
@@ -436,10 +438,11 @@ async function main() {
       const defaultType =
         gender === "GIRL" && i % 5 === 0
           ? "dresses"
-          : (["tshirts", "pants", "outerwear", "sportswear", "footwear", "accessories"] as const)[
+          : (["tshirts", "pants", "outerwear", "sportswear", "footwear", "hats", "caps", "bags", "glasses"] as const)[
               i % 6
             ];
       const typeSlug = p.typeSlug ?? defaultType;
+      const images = imagesFor(offset + i);
       const product = await prisma.product.create({
         data: {
           slug: p.slug,
@@ -447,30 +450,46 @@ async function main() {
           description: p.description,
           price: p.price,
           compareAtPrice: p.compareAtPrice ?? null,
-          images: imagesFor(offset + i),
+          images,
           tag: p.tag ?? null,
           tagStyle: p.tagStyle ?? "cobalt",
           rating: p.rating,
           reviewCount: p.reviewCount,
           isFeatured: p.isFeatured ?? false,
+          featuredAt: p.isFeatured ? new Date() : null,
           isSale: p.isSale ?? false,
           gender,
           materials: MATERIALS,
           categoryId,
           productTypeId: typesBySlug.get(typeSlug) ?? typesBySlug.get("tshirts")!,
           createdAt: new Date(Date.now() - i * 86400000 * 3),
-          variants: {
-            create: sizes.flatMap((size) =>
-              p.colors.map((color) => ({
-                size,
-                color,
-                colorHex: COLORS[color] ?? "#CCCCCC",
-                stock: 5 + ((offset + i) % 10),
-              }))
-            ),
-          },
         },
       });
+
+      for (let ci = 0; ci < p.colors.length; ci++) {
+        const colorName = p.colors[ci];
+        const colorHex = COLORS[colorName] ?? "#CCCCCC";
+        const colorRow = await prisma.productColor.create({
+          data: {
+            productId: product.id,
+            name: colorName,
+            colorHex,
+            images,
+            sortOrder: ci,
+          },
+        });
+        await prisma.productVariant.createMany({
+          data: sizes.map((size) => ({
+            productId: product.id,
+            colorId: colorRow.id,
+            size,
+            color: colorName,
+            colorHex,
+            stock: 5 + ((offset + i + ci) % 10),
+          })),
+        });
+      }
+
       await prisma.review.createMany({
         data: REVIEW_TEXTS.map((r) => ({
           productId: product.id,
@@ -482,16 +501,8 @@ async function main() {
     }
   };
 
-  await createProducts(TEENS, catalog.id, SIZES_6_16, 0);
-  await createProducts(KIDS, catalog.id, SIZES_6_16, TEENS.length);
-
-  console.log("Промокоди ...");
-  await prisma.promoCode.createMany({
-    data: [
-      { code: "LUMILIGHT", discountPercent: 10, active: true },
-      { code: "LUMI20", discountPercent: 20, active: true },
-    ],
-  });
+  await createProducts(TEENS, catalog.id, SIZES_HEIGHT, 0);
+  await createProducts(KIDS, catalog.id, SIZES_HEIGHT, TEENS.length);
 
   console.log("Користувачі ...");
   await prisma.user.create({
@@ -506,7 +517,6 @@ async function main() {
     data: {
       email: "lumi.customer@example.com",
       name: "Олександр",
-      discountPercent: 10,
       createdAt: new Date("2024-03-15"),
     },
   });
@@ -533,17 +543,17 @@ async function main() {
       paymentStatus: "paid",
       status: "DELIVERED",
       subtotal: 3490,
-      discount: 350,
+      discount: 0,
       shipping: 0,
-      total: 3140,
-      promoCode: "LUMILIGHT",
+      total: 3490,
+      promoCode: null,
       createdAt: new Date("2026-03-12"),
       items: {
         create: [
           {
             productId: hudi.id,
             name: hudi.name,
-            size: "12 років",
+            size: "152 см",
             color: "Яскраво-синій",
             image: hudi.images[0],
             price: 1250,
@@ -552,7 +562,7 @@ async function main() {
           {
             productId: futbolka.id,
             name: futbolka.name,
-            size: "12 років",
+            size: "152 см",
             color: "Кремовий",
             image: futbolka.images[0],
             price: 690,
@@ -586,7 +596,7 @@ async function main() {
           {
             productId: hudi.id,
             name: hudi.name,
-            size: "14 років",
+            size: "164 см",
             color: "Індиго",
             image: hudi.images[0],
             price: 1250,

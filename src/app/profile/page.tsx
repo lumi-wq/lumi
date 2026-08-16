@@ -3,22 +3,15 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, formatDate, productCountLabel } from "@/lib/format";
+import { toCardData } from "@/lib/types";
+import { ORDER_STATUS_LABELS } from "@/lib/order-status";
 import { LogoutButton } from "@/components/profile/LogoutButton";
 import { SettingsToggles } from "@/components/profile/SettingsToggles";
 import { WishlistList } from "@/components/profile/WishlistList";
 
-export const metadata = { title: "Профіль" };
+export const metadata = { title: "Профіль", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  NEW: { label: "НОВЕ", className: "bg-chalk text-obsidian/70" },
-  PAID: { label: "ОПЛАЧЕНО", className: "bg-mint text-obsidian" },
-  PROCESSING: { label: "ЗБИРАЄТЬСЯ", className: "bg-mint text-obsidian" },
-  SHIPPED: { label: "ВІДПРАВЛЕНО", className: "bg-cobalt/10 text-cobalt" },
-  ARRIVED: { label: "ПРИБУЛА", className: "bg-amber-100 text-amber-800" },
-  DELIVERED: { label: "ОТРИМАНО", className: "bg-green-100 text-green-700" },
-  CANCELLED: { label: "СКАСОВАНО", className: "bg-red-100 text-red-600" },
-};
 
 export default async function ProfilePage() {
   const user = await getSessionUser();
@@ -32,8 +25,9 @@ export default async function ProfilePage() {
     }),
     prisma.wishlistItem.findMany({
       where: { userId: user.id },
-      include: { product: true },
+      include: { product: { include: { variants: true } } },
       orderBy: { createdAt: "desc" },
+      take: 4,
     }),
   ]);
 
@@ -58,7 +52,12 @@ export default async function ProfilePage() {
         <div className="container-content grid gap-10 lg:grid-cols-[3fr_2fr]">
           <div className="space-y-10">
             <div>
-              <h2 className="font-display text-xl font-bold">Мої замовлення</h2>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <h2 className="font-display text-xl font-bold">Мої замовлення</h2>
+                <Link href="/orders" className="text-[13px] font-semibold text-cobalt underline">
+                  Знайти за номером
+                </Link>
+              </div>
               <div className="mt-5 space-y-4">
                 {orders.length === 0 && (
                   <div className="rounded-card bg-chalk p-8 text-center text-sm text-obsidian/60">
@@ -69,12 +68,13 @@ export default async function ProfilePage() {
                   </div>
                 )}
                 {orders.map((order) => {
-                  const status = STATUS_LABELS[order.status] ?? STATUS_LABELS.NEW;
+                  const status = ORDER_STATUS_LABELS[order.status] ?? ORDER_STATUS_LABELS.NEW;
                   const itemsCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
                   return (
-                    <div
+                    <Link
                       key={order.id}
-                      className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-black/5 bg-chalk px-6 py-5"
+                      href={`/orders/${encodeURIComponent(order.number)}`}
+                      className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-black/5 bg-chalk px-6 py-5 transition hover:border-cobalt/40"
                     >
                       <div>
                         <p className="font-bold">Замовлення #{order.number}</p>
@@ -83,15 +83,7 @@ export default async function ProfilePage() {
                         </p>
                         {order.trackingNumber && (
                           <p className="mt-1 text-[13px] text-obsidian/60">
-                            ТТН:{" "}
-                            <a
-                              href={`https://novaposhta.ua/tracking/?cargo_number=${order.trackingNumber}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="font-semibold text-cobalt underline underline-offset-2"
-                            >
-                              {order.trackingNumber}
-                            </a>
+                            ТТН: {order.trackingNumber}
                             {order.npStatusText ? ` — ${order.npStatusText}` : ""}
                           </p>
                         )}
@@ -104,7 +96,7 @@ export default async function ProfilePage() {
                         </span>
                         <span className="font-bold">{formatPrice(order.total)}</span>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -122,42 +114,30 @@ export default async function ProfilePage() {
           </div>
 
           <div className="space-y-8 self-start">
-            <div className="rounded-[20px] bg-cobalt p-8 text-white">
-              <div className="flex items-center justify-between">
-                <span className="font-display text-lg font-bold">LUMI CLUB</span>
-                <span className="rounded-md bg-white/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider">
-                  Лояльність
-                </span>
-              </div>
-              <p className="mt-6 font-display text-[56px] font-black leading-none">
-                {user.discountPercent}%
-              </p>
-              <p className="mt-3 text-sm text-white/85">Ваша персональна знижка на всі товари</p>
-              <p className="mt-6 border-t border-white/20 pt-5 text-xs leading-relaxed text-white/70">
-                Промокод активується автоматично в кошику під час оформлення замовлення.
-              </p>
-            </div>
-
             <div id="wishlist" className="rounded-card border border-black/5 bg-chalk p-7">
               <div className="flex items-center justify-between">
                 <h2 className="font-display text-xl font-bold">Обране</h2>
                 <Link
-                  href="/category/new"
+                  href="/wishlist"
                   className="text-[13px] font-semibold text-cobalt underline underline-offset-2"
                 >
-                  Дивитись все
+                  Відкрити все
                 </Link>
               </div>
-              <WishlistList
-                initial={wishlist.map((w) => ({
-                  id: w.id,
-                  productId: w.productId,
-                  slug: w.product.slug,
-                  name: w.product.name,
-                  price: w.product.price,
-                  image: w.product.images[0] ?? "",
-                }))}
-              />
+              <div className="mt-5">
+                {wishlist.length === 0 ? (
+                  <p className="text-sm text-obsidian/60">Тут зʼявляться збережені товари.</p>
+                ) : (
+                  <WishlistList
+                    columns={2}
+                    initial={wishlist.map((w) => ({
+                      id: w.id,
+                      productId: w.productId,
+                      product: toCardData(w.product),
+                    }))}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>

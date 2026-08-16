@@ -2,11 +2,32 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createSessionToken, SESSION_COOKIE } from "@/lib/auth";
+import { readGuestId } from "@/lib/guest";
+import { claimGuestWishlist } from "@/lib/wishlist";
 
 const schema = z.object({
   email: z.string().email(),
   code: z.string().length(4),
 });
+
+/**
+ * Привʼязує гостьові замовлення до акаунта:
+ * — за guestId cookie (історія з цього пристрою)
+ * — за тим самим email (замовлення з інших пристроїв з цим email)
+ */
+async function claimGuestOrders(userId: string, email: string) {
+  const guestId = readGuestId();
+  const or: Array<{ guestId?: string; email?: string }> = [{ email }];
+  if (guestId) or.push({ guestId });
+
+  await prisma.order.updateMany({
+    where: {
+      userId: null,
+      OR: or,
+    },
+    data: { userId },
+  });
+}
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
@@ -35,6 +56,9 @@ export async function POST(req: Request) {
     update: {},
     create: { email },
   });
+
+  await claimGuestOrders(user.id, email);
+  await claimGuestWishlist(user.id);
 
   const token = await createSessionToken(user.id);
   const res = NextResponse.json({

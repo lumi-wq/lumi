@@ -8,6 +8,8 @@ type Props = {
   images: string[];
   colors: string[];
   onChangeColors: (hexes: string[]) => void;
+  /** Один колір з фото — без ручного вибору */
+  mode?: "single" | "multi";
 };
 
 function rgbToHex(r: number, g: number, b: number): string {
@@ -20,13 +22,14 @@ function rgbToHex(r: number, g: number, b: number): string {
   );
 }
 
-export function ImageColorPicker({ images, colors, onChangeColors }: Props) {
+export function ImageColorPicker({ images, colors, onChangeColors, mode = "multi" }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [activeImage, setActiveImage] = useState(0);
-  const [picking, setPicking] = useState(false);
+  const [picking, setPicking] = useState(mode === "single");
   const [hoverHex, setHoverHex] = useState<string | null>(null);
 
   const src = images[activeImage] ?? null;
+  const single = mode === "single";
 
   const sampleAt = useCallback(
     async (clientX: number, clientY: number, imgEl: HTMLImageElement) => {
@@ -51,9 +54,13 @@ export function ImageColorPicker({ images, colors, onChangeColors }: Props) {
     []
   );
 
-  const addColor = (hex: string) => {
+  const applyColor = (hex: string) => {
     const normalized = normalizeHex(hex);
     if (!normalized) return;
+    if (single) {
+      onChangeColors([normalized]);
+      return;
+    }
     if (colors.includes(normalized)) return;
     onChangeColors([...colors, normalized]);
   };
@@ -84,7 +91,14 @@ export function ImageColorPicker({ images, colors, onChangeColors }: Props) {
                 i === activeImage ? "border-cobalt ring-2 ring-cobalt/30" : "border-black/10"
               }`}
             >
-              <Image src={url} alt="" fill sizes="56px" className="object-cover" unoptimized={url.startsWith("blob:")} />
+              <Image
+                src={url}
+                alt=""
+                fill
+                sizes="56px"
+                className="object-cover"
+                unoptimized={url.startsWith("blob:")}
+              />
             </button>
           ))}
         </div>
@@ -94,9 +108,9 @@ export function ImageColorPicker({ images, colors, onChangeColors }: Props) {
         <p className="border-b border-black/5 px-4 py-2 text-xs text-obsidian/60">
           {picking
             ? hoverHex
-              ? `Клікніть, щоб додати ${hoverHex}`
+              ? `Клікніть, щоб обрати ${hoverHex}`
               : "Наведіть на фото й клікніть по кольору тканини"
-            : "Увімкніть піпетку й клікніть по фото, щоб додати колір"}
+            : "Увімкніть піпетку й клікніть по фото, щоб обрати колір"}
         </p>
         <div className="relative">
           {src && (
@@ -115,62 +129,62 @@ export function ImageColorPicker({ images, colors, onChangeColors }: Props) {
               onClick={async (e) => {
                 if (!picking) return;
                 const hex = await sampleAt(e.clientX, e.clientY, e.currentTarget);
-                if (hex) addColor(hex);
+                if (hex) applyColor(hex);
               }}
             />
           )}
           {picking && hoverHex && (
-            <span
-              className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold shadow"
-            >
-              <span className="h-4 w-4 rounded-full border border-black/10" style={{ backgroundColor: hoverHex }} />
+            <span className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold shadow">
+              <span
+                className="h-4 w-4 rounded-full border border-black/10"
+                style={{ backgroundColor: hoverHex }}
+              />
               {hoverHex}
             </span>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setPicking((v) => !v)}
-          className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-            picking ? "bg-cobalt text-white" : "border border-[#E0E0E0] bg-white hover:border-obsidian"
-          }`}
-        >
-          {picking ? "Піпетка увімкнена" : "Взяти колір з фото"}
-        </button>
-        <label className="flex items-center gap-2 text-sm text-obsidian/70">
-          або оберіть вручну
-          <input
-            type="color"
-            value={colors[0] ?? "#3B00FF"}
-            onChange={(e) => addColor(e.target.value)}
-            className="h-8 w-10 cursor-pointer rounded border border-black/10 bg-white p-0.5"
-            aria-label="Додати колір вручну"
-          />
-        </label>
-      </div>
+      {!single && (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setPicking((v) => !v)}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              picking ? "bg-cobalt text-white" : "border border-[#E0E0E0] bg-white hover:border-obsidian"
+            }`}
+          >
+            {picking ? "Піпетка увімкнена" : "Взяти колір з фото"}
+          </button>
+        </div>
+      )}
 
       {colors.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {single && <span className="text-sm text-obsidian/60">Обраний колір:</span>}
           {colors.map((hex) => (
             <button
               key={hex}
               type="button"
-              onClick={() => removeColor(hex)}
-              title={`Прибрати ${hex}`}
-              className="group relative h-9 w-9 rounded-full border border-black/10"
+              onClick={() => (single ? undefined : removeColor(hex))}
+              title={single ? hex : `Прибрати ${hex}`}
+              className={`relative h-9 w-9 rounded-full border border-black/10 ${
+                single ? "ring-2 ring-cobalt ring-offset-2" : "group"
+              }`}
               style={{ backgroundColor: hex }}
             >
-              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 text-xs font-bold text-white opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
-                ×
-              </span>
+              {!single && (
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 text-xs font-bold text-white opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
+                  ×
+                </span>
+              )}
             </button>
           ))}
         </div>
       ) : (
-        <p className="text-sm text-obsidian/50">Кольори ще не додані</p>
+        <p className="text-sm text-obsidian/50">
+          {single ? "Клікніть по тканині на фото, щоб обрати колір" : "Кольори ще не додані"}
+        </p>
       )}
     </div>
   );

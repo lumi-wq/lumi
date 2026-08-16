@@ -6,9 +6,25 @@
  * Без ключа / при помилці API — локальний мок довідників.
  */
 
+import {
+  formatDeliveryDateUk,
+  formatNpDate,
+  getDispatchDate,
+  parseNpDate,
+} from "@/lib/dispatch-date";
+import { SHIPPING_FEE } from "@/lib/format";
+
 const NP_API = "https://api.novaposhta.ua/v2.0/json/";
 
-export type City = { ref: string; name: string };
+/** Місто відправника LUMI — Сокиряни, Чернівецька обл. */
+export const SENDER_CITY_QUERY = "Сокиряни";
+
+export type City = {
+  ref: string;
+  name: string;
+  /** CityRef для getDocumentPrice / getDocumentDeliveryDate (DeliveryCity) */
+  cityRef: string;
+};
 export type Warehouse = { ref: string; description: string };
 
 const MOCK_CITY_NAMES = [
@@ -18,12 +34,13 @@ const MOCK_CITY_NAMES = [
   "Ужгород", "Кропивницький", "Кременчук", "Біла Церква", "Мелітополь",
   "Бровари", "Ірпінь", "Буча", "Бориспіль", "Кам'янець-Подільський",
   "Мукачево", "Дрогобич", "Стрий", "Ковель", "Нововолинськ", "Умань",
-  "Ніжин", "Славута", "Трускавець", "Чернівці", "Херсон",
+  "Ніжин", "Славута", "Трускавець", "Чернівці", "Херсон", "Сокиряни",
 ];
 
 const MOCK_CITIES: City[] = MOCK_CITY_NAMES.map((name, i) => ({
   ref: `mock-city-${i}`,
   name,
+  cityRef: `mock-city-${i}`,
 }));
 
 const MOCK_WAREHOUSES = [
@@ -88,19 +105,23 @@ export async function searchCities(query: string): Promise<City[]> {
       "searchSettlements",
       { CityName: query, Limit: 10 }
     );
-    // searchSettlements повертає Addresses всередині першого елемента
-    type SettlementWrap = {
-      Addresses?: { Ref: string; Present: string; MainDescription: string; Area?: string }[];
+    type SettlementAddress = {
+      Ref: string;
+      Present: string;
+      MainDescription: string;
+      Area?: string;
+      DeliveryCity?: string;
     };
+    type SettlementWrap = { Addresses?: SettlementAddress[] };
     const wrap = data as unknown as SettlementWrap[];
     const addresses = wrap[0]?.Addresses ?? [];
     if (addresses.length > 0) {
       return addresses.map((a) => ({
         ref: a.Ref,
+        cityRef: a.DeliveryCity || a.Ref,
         name: a.Present || (a.Area ? `${a.MainDescription} (${a.Area})` : a.MainDescription),
       }));
     }
-    // Fallback на getCities
     const cities = await npRequest<{ Ref: string; Description: string; AreaDescription?: string }>(
       "Address",
       "getCities",
@@ -108,6 +129,7 @@ export async function searchCities(query: string): Promise<City[]> {
     );
     return cities.map((c) => ({
       ref: c.Ref,
+      cityRef: c.Ref,
       name: c.AreaDescription ? `${c.Description} (${c.AreaDescription})` : c.Description,
     }));
   } catch (err) {
@@ -123,13 +145,11 @@ export async function getWarehouses(cityRef: string): Promise<Warehouse[]> {
     return mockWarehouses(cityRef);
   }
   try {
-    // Ref з searchSettlements — це SettlementRef (населений пункт)
     let data = await npRequest<{ Ref: string; Description: string }>("Address", "getWarehouses", {
       SettlementRef: cityRef,
       Limit: 50,
     });
     if (data.length === 0) {
-      // Fallback: якщо передали CityRef зі старого getCities
       data = await npRequest<{ Ref: string; Description: string }>("Address", "getWarehouses", {
         CityRef: cityRef,
         Limit: 50,
@@ -144,20 +164,129 @@ export async function getWarehouses(cityRef: string): Promise<Warehouse[]> {
   }
 }
 
-/** Статуси Нової Пошти → внутрішні статуси замовлення LUMI. */
-export type LumiShippingStatus = "SHIPPED" | "ARRIVED" | "DELIVERED";
+let cachedSenderCityRef: string | null = process.env.NOVA_POSHTA_SENDER_CITY_REF ?? null;
+
+/** CityRef відправника (Сокиряни). */
+export async function getSenderCityRef(): Promise<string> {
+  if (cachedSenderCityRef) return cachedSenderCityRef;
+  if (!process.env.NOVA_POSHTA_API_KEY) {
+    cachedSenderCityRef = MOCK_CITIES.find((c) => c.name === "Сокиряни")?.cityRef ?? "mock-city-sok";
+    return cachedSenderCityRef;
+  }
+  const cities = await npRequest<{ Ref: string; Description: string; AreaDescription?: string }>(
+    "Address",
+    "getCities",
+    { FindByString: SENDER_CITY_QUERY, Limit: 10 }
+  );
+  const match =
+    cities.find((c) => c.Description === SENDER_CITY_QUERY) ??
+    cities.find((c) => c.Description.includes(SENDER_CITY_QUERY)) ??
+    cities[0];
+  if (!match) throw new Error("Не знайдено місто відправника Сокиряни в НП");
+  cachedSenderCityRef = match.Ref;
+  return cachedSenderCityRef;
+}
+
+export type ShippingQuote = {
+  shipping: number;
+  npCost: number;
+  weightKg: number;
+  dispatchDate: string;
+  deliveryDate: string | null;
+  deliveryDateLabel: string | null;
+};
+
+function mockQuote(weightKg: number): ShippingQuote {
+  const dispatch = getDispatchDate();
+  const delivery = new Date(dispatch);
+  delivery.setUTCDate(delivery.getUTCDate() + 2);
+  return {
+    shipping: SHIPPING_FEE,
+    npCost: SHIPPING_FEE,
+    weightKg,
+    dispatchDate: formatNpDate(dispatch),
+    deliveryDate: formatNpDate(delivery),
+    deliveryDateLabel: formatDeliveryDateUk(delivery),
+  };
+}
 
 /**
- * Коди статусів TrackingDocument (StatusCode).
- * @see https://developers.novaposhta.ua
+ * Розрахунок вартості та орієнтовної дати доставки НП (відділення → відділення).
  */
+export async function quoteWarehouseShipping(input: {
+  cityRecipientRef: string;
+  weightKg: number;
+  declaredCost: number;
+}): Promise<ShippingQuote> {
+  const weightKg = Math.max(0.1, input.weightKg);
+
+  if (!process.env.NOVA_POSHTA_API_KEY || input.cityRecipientRef.startsWith("mock-city-")) {
+    return mockQuote(weightKg);
+  }
+
+  try {
+    const citySender = await getSenderCityRef();
+    const dispatch = getDispatchDate();
+    const dateTime = formatNpDate(dispatch);
+
+    const [priceRows, dateRows] = await Promise.all([
+      npRequest<{ Cost?: number | string }>("InternetDocument", "getDocumentPrice", {
+        CitySender: citySender,
+        CityRecipient: input.cityRecipientRef,
+        Weight: String(weightKg),
+        ServiceType: "WarehouseWarehouse",
+        Cost: String(Math.max(1, Math.round(input.declaredCost))),
+        CargoType: "Parcel",
+        SeatsAmount: "1",
+      }),
+      npRequest<{
+        DeliveryDate?: { date?: string } | string;
+        date?: string;
+      }>("InternetDocument", "getDocumentDeliveryDate", {
+        CitySender: citySender,
+        CityRecipient: input.cityRecipientRef,
+        ServiceType: "WarehouseWarehouse",
+        DateTime: dateTime,
+      }),
+    ]);
+
+    const price = priceRows[0];
+    const npCost = Math.round(Number(price?.Cost ?? 0));
+    const shipping = Math.max(0, npCost);
+
+    const rawDate = dateRows[0]?.DeliveryDate;
+    const dateStr =
+      typeof rawDate === "string"
+        ? rawDate
+        : rawDate && typeof rawDate === "object" && rawDate.date
+          ? rawDate.date
+          : typeof dateRows[0]?.date === "string"
+            ? dateRows[0].date
+            : null;
+    const parsed = dateStr ? parseNpDate(dateStr) : null;
+
+    return {
+      shipping,
+      npCost,
+      weightKg,
+      dispatchDate: dateTime,
+      deliveryDate: parsed ? formatNpDate(parsed) : dateStr,
+      deliveryDateLabel: parsed ? formatDeliveryDateUk(parsed) : null,
+    };
+  } catch (err) {
+    console.warn(
+      `[Нова Пошта] розрахунок доставки: ${err instanceof Error ? err.message : err} — fallback`
+    );
+    return mockQuote(weightKg);
+  }
+}
+
+export type LumiShippingStatus = "SHIPPED" | "ARRIVED" | "DELIVERED";
+
 export function mapNpStatusCode(code: string | number): LumiShippingStatus | null {
   const n = Number(code);
-  // Отримано
   if ([9, 10, 11].includes(n)) return "DELIVERED";
-  // Прибула у відділення / поштомат
   if ([7, 8].includes(n)) return "ARRIVED";
-  // В дорозі / відправлено
   if ([4, 5, 6, 41, 101, 104].includes(n)) return "SHIPPED";
   return null;
 }

@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { href: "/category/new", label: "Новинки" },
   { href: "/category/girls", label: "Дівчатка" },
   { href: "/category/boys", label: "Хлопчики" },
+  { href: "/category/accessories", label: "Аксесуари" },
 ];
 
 export function Header() {
@@ -32,7 +33,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50">
       <div className="bg-obsidian py-2 text-center text-xs font-semibold uppercase tracking-wide text-white">
-        Безкоштовна доставка від 1 500 ₴ — Код: LUMILIGHT
+        Доставка Новою Поштою по Україні
       </div>
       <div className="border-b border-black/5 bg-white">
         <div className="container-content flex h-20 items-center justify-between gap-4">
@@ -77,7 +78,7 @@ export function Header() {
               <UserIcon />
             </Link>
             <Link
-              href="/profile#wishlist"
+              href="/wishlist"
               className="hidden text-obsidian transition hover:text-cobalt sm:block"
               aria-label="Обране"
             >

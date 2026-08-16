@@ -3,13 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toCardData } from "@/lib/types";
-import { formatDate } from "@/lib/format";
-import { Gallery } from "@/components/product/Gallery";
-import { ProductPurchase } from "@/components/product/ProductPurchase";
+import { isFeaturedActive } from "@/lib/featured";
 import { ProductGrid } from "@/components/product/ProductGrid";
-import { Tag } from "@/components/product/Tag";
-import { ProductPrice } from "@/components/product/ProductPrice";
-import { StarIcon } from "@/components/Icons";
+import { ProductDetailClient } from "@/components/product/ProductDetailClient";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { canonicalMetadata } from "@/lib/seo";
+import { absoluteUrl } from "@/lib/site";
+import { typeClusterPath } from "@/lib/seo-landing-paths";
 
 export const revalidate = 60;
 
@@ -23,14 +23,26 @@ export async function generateMetadata({
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
-  const product = await prisma.product.findUnique({ where: { slug: params.slug } });
+  const product = await prisma.product.findUnique({
+    where: { slug: params.slug },
+    include: { productType: true },
+  });
   if (!product) return {};
+  const who = product.gender === "GIRL" ? "дівчаток" : "хлопчиків";
+  const typeName = product.productType?.name;
+  const description = `${product.description} Купити онлайн з доставкою Новою Поштою по Україні.`.slice(
+    0,
+    320
+  );
+  const path = `/product/${product.slug}`;
   return {
-    title: product.name,
-    description: product.description,
+    title: `${product.name} для ${who}`,
+    description,
+    ...canonicalMetadata(path),
     openGraph: {
-      title: `${product.name} | LUMI`,
-      description: product.description,
+      ...canonicalMetadata(path).openGraph,
+      title: `${product.name}${typeName ? ` — ${typeName}` : ""} | LUMI`,
+      description,
       images: product.images.slice(0, 1),
     },
   };
@@ -41,18 +53,50 @@ export default async function ProductPage({ params }: { params: { slug: string }
     where: { slug: params.slug },
     include: {
       variants: true,
+      colors: { orderBy: { sortOrder: "asc" } },
       category: true,
-      reviews: { orderBy: { createdAt: "desc" }, take: 5 },
+      productType: true,
     },
   });
   if (!product) notFound();
 
   const related = await prisma.product.findMany({
-    where: { categoryId: product.categoryId, id: { not: product.id } },
+    where: {
+      id: { not: product.id },
+      ...(product.productTypeId
+        ? { productTypeId: product.productTypeId }
+        : { categoryId: product.categoryId }),
+    },
     include: { variants: true },
-    orderBy: { rating: "desc" },
+    orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
     take: 4,
   });
+
+  const colors =
+    product.colors.length > 0
+      ? product.colors.map((c) => ({
+          id: c.id,
+          name: c.name,
+          colorHex: c.colorHex,
+          images: c.images.length ? c.images : product.images,
+        }))
+      : Array.from(
+          new Map(product.variants.map((v) => [v.colorHex.toUpperCase(), v])).values()
+        ).map((v, i) => ({
+          id: `legacy-${i}`,
+          name: v.color,
+          colorHex: v.colorHex,
+          images: product.images,
+        }));
+
+  const inStock = product.variants.some((v) => v.stock > 0);
+  const url = absoluteUrl(`/product/${product.slug}`);
+  const genderParent = product.gender === "GIRL" ? "girls" : "boys";
+  const genderHref = `/category/${genderParent}`;
+  const genderLabel = product.gender === "GIRL" ? "Дівчатка" : "Хлопчики";
+  const typeHref = product.productType
+    ? typeClusterPath(genderParent, product.productType.slug)
+    : null;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -61,111 +105,100 @@ export default async function ProductPage({ params }: { params: { slug: string }
     description: product.description,
     image: product.images,
     sku: product.slug,
-    aggregateRating:
-      product.reviewCount > 0
-        ? {
+    brand: { "@type": "Brand", name: "LUMI" },
+    category: product.productType?.name,
+    ...(product.reviewCount > 0
+      ? {
+          aggregateRating: {
             "@type": "AggregateRating",
             ratingValue: product.rating,
             reviewCount: product.reviewCount,
-          }
-        : undefined,
+          },
+        }
+      : {}),
     offers: {
       "@type": "Offer",
       priceCurrency: "UAH",
       price: product.price,
-      availability: "https://schema.org/InStock",
-      url: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/product/${product.slug}`,
+      availability: inStock
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      url,
+      seller: { "@type": "Organization", name: "LUMI" },
     },
+  };
+
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Головна", item: absoluteUrl("/") },
+      { "@type": "ListItem", position: 2, name: genderLabel, item: absoluteUrl(genderHref) },
+      ...(typeHref && product.productType
+        ? [
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: product.productType.name,
+              item: absoluteUrl(typeHref),
+            },
+          ]
+        : []),
+      {
+        "@type": "ListItem",
+        position: typeHref ? 4 : 3,
+        name: product.name,
+        item: url,
+      },
+    ],
   };
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
+      <JsonLd data={breadcrumbLd} />
       <section className="bg-chalk">
         <div className="container-content py-8">
           <nav className="text-[13px] text-obsidian/60" aria-label="Хлібні крихти">
-            <Link href="/" className="hover:text-cobalt">Головна</Link>
-            <span className="mx-2">›</span>
-            <Link href={`/category/${product.category.slug}`} className="hover:text-cobalt">
-              {product.category.name}
+            <Link href="/" className="hover:text-cobalt">
+              Головна
             </Link>
+            <span className="mx-2">›</span>
+            <Link href={genderHref} className="hover:text-cobalt">
+              {genderLabel}
+            </Link>
+            {typeHref && product.productType && (
+              <>
+                <span className="mx-2">›</span>
+                <Link href={typeHref} className="hover:text-cobalt">
+                  {product.productType.name}
+                </Link>
+              </>
+            )}
             <span className="mx-2">›</span>
             <span className="font-medium text-obsidian">{product.name}</span>
           </nav>
 
-          <div className="mt-8 grid gap-12 lg:grid-cols-2">
-            <Gallery images={product.images} alt={product.name} />
-
-            <div>
-              <div className="flex items-center gap-3">
-                {product.isSale ? (
-                  <Tag label="Розпродаж" style="dark" />
-                ) : (
-                  product.tag && <Tag label={product.tag} style={product.tagStyle} />
-                )}
-                <span className="flex items-center gap-1.5 text-sm text-obsidian/70">
-                  <StarIcon className="h-4 w-4 text-cobalt" />
-                  {product.rating} ({product.reviewCount} відгуків)
-                </span>
-              </div>
-              <h1 className="mt-4 font-display text-3xl font-black md:text-[40px]">{product.name}</h1>
-              <ProductPrice
-                price={product.price}
-                compareAtPrice={product.compareAtPrice}
-                size="lg"
-                className="mt-3"
-              />
-
-              <ProductPurchase
-                product={{
-                  id: product.id,
-                  slug: product.slug,
-                  name: product.name,
-                  price: product.price,
-                  image: product.images[0] ?? "",
-                }}
-                variants={product.variants}
-              />
-
-              <div className="mt-10 border-t border-black/10 pt-6">
-                <h3 className="text-base font-bold">Про матеріали</h3>
-                <p className="mt-2 text-sm leading-relaxed text-obsidian/70">{product.materials}</p>
-              </div>
-
-              <div className="mt-6 border-t border-black/10 pt-6">
-                <h3 className="text-base font-bold">Опис</h3>
-                <p className="mt-2 text-sm leading-relaxed text-obsidian/70">{product.description}</p>
-              </div>
-            </div>
-          </div>
+          <ProductDetailClient
+            product={{
+              id: product.id,
+              slug: product.slug,
+              name: product.name,
+              price: product.price,
+              compareAtPrice: product.compareAtPrice,
+              isSale: product.isSale,
+              isFeatured: isFeaturedActive(product),
+              tag: product.tag,
+              tagStyle: product.tagStyle,
+              materials: product.materials,
+              description: product.description,
+              fallbackImage: product.images[0] ?? "",
+            }}
+            colors={colors}
+            variants={product.variants}
+          />
         </div>
       </section>
-
-      {product.reviews.length > 0 && (
-        <section className="bg-white py-16">
-          <div className="container-content">
-            <h2 className="font-display text-2xl font-black md:text-3xl">Відгуки покупців</h2>
-            <div className="mt-8 grid gap-6 md:grid-cols-3">
-              {product.reviews.map((review) => (
-                <div key={review.id} className="rounded-card bg-chalk p-6">
-                  <div className="flex items-center gap-1 text-cobalt">
-                    {Array.from({ length: review.rating }).map((_, i) => (
-                      <StarIcon key={i} className="h-3.5 w-3.5" />
-                    ))}
-                  </div>
-                  <p className="mt-3 text-sm leading-relaxed">{review.text}</p>
-                  <p className="mt-4 text-xs font-semibold text-obsidian/60">
-                    {review.authorName} • {formatDate(review.createdAt)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       <section className="py-16">
         <div className="container-content">

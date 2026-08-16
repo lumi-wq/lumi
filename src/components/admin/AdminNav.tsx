@@ -7,8 +7,6 @@ const LINKS = [
   { href: "/admin", label: "Огляд" },
   { href: "/admin/products", label: "Товари" },
   { href: "/admin/orders", label: "Замовлення" },
-  { href: "/admin/promocodes", label: "Промокоди" },
-  { href: "/admin/customers", label: "Клієнти (LUMI CLUB)" },
 ];
 
 export function AdminNav() {
