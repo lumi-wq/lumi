@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { toCardData } from "@/lib/types";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { SearchBanner } from "@/components/catalog/SearchBanner";
+import { NOINDEX_FOLLOW } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Пошук" };
+export const metadata = { title: "Пошук", ...NOINDEX_FOLLOW };
 
 function resultsLabel(count: number): string {
   const mod10 = count % 10;
@@ -32,7 +33,7 @@ export default async function SearchPage({
           ],
         },
         include: { variants: true },
-        orderBy: [{ isFeatured: "desc" }, { rating: "desc" }],
+        orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
       })
     : [];
 

@@ -1,12 +1,19 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { toCardData } from "@/lib/types";
+import { activeFeaturedWhere, expireFeaturedProducts } from "@/lib/featured";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { NewsletterForm } from "@/components/home/NewsletterForm";
 import { ArrowRightIcon } from "@/components/Icons";
+import { canonicalMetadata } from "@/lib/seo";
 
 export const revalidate = 60;
+
+export const metadata: Metadata = {
+  ...canonicalMetadata("/"),
+};
 
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1503944583220-79d8926ad5e2?auto=format&fit=crop&w=1400&q=80";
@@ -14,17 +21,17 @@ const HERO_IMAGE =
 const CATEGORY_TILES = [
   {
     label: "Спортивний одяг",
-    href: "/search?q=active",
+    href: "/category/sportyvni-kostyumy",
     image: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&w=900&q=80",
   },
   {
     label: "Верхній одяг",
-    href: "/search?q=куртка",
+    href: "/category/verkhniy-odyag",
     image: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80",
   },
   {
-    label: "Трикотаж",
-    href: "/search?q=светр",
+    label: "Футболки",
+    href: "/category/futbolky",
     image: "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=900&q=80",
   },
 ];
@@ -38,11 +45,13 @@ const LIFESTYLE = [
 ];
 
 export default async function HomePage() {
+  await expireFeaturedProducts();
+
   const [featured, sale] = await Promise.all([
     prisma.product.findMany({
-      where: { isFeatured: true },
+      where: activeFeaturedWhere(),
       include: { variants: true },
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ featuredAt: "desc" }, { createdAt: "desc" }],
       take: 6,
     }),
     prisma.product.findMany({
@@ -64,10 +73,11 @@ export default async function HomePage() {
                 Розпродаж залишків
               </span>
               <h1 className="mt-6 font-display text-4xl font-black uppercase leading-[1.05] tracking-tight text-cobalt md:text-[56px]">
-                Великі знижки на улюблені моделі
+                Одяг для дітей 6–16 років
               </h1>
               <p className="mt-6 max-w-md text-lg leading-relaxed text-obsidian/80">
-                Сезонні залишки з помітними знижками — поки є розміри. Зручний одяг з натуральних матеріалів.
+                Зручні речі з натуральних матеріалів. Доставка Новою Поштою по Україні — зараз ще й
+                знижки на сезонні залишки.
               </p>
               <div className="mt-10 flex flex-wrap gap-4">
                 <Link href="/category/sale" className="btn-primary">

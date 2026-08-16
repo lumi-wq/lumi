@@ -1,24 +1,26 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { useState } from "react";
-import { formatPrice } from "@/lib/format";
+import type { ProductCardData } from "@/lib/types";
+import { ProductCard } from "@/components/product/ProductCard";
 import { HeartIcon } from "@/components/Icons";
 
-type Item = {
+export type WishlistEntry = {
   id: string;
   productId: string;
-  slug: string;
-  name: string;
-  price: number;
-  image: string;
+  product: ProductCardData;
 };
 
-export function WishlistList({ initial }: { initial: Item[] }) {
+export function WishlistList({
+  initial,
+  columns = 3,
+}: {
+  initial: WishlistEntry[];
+  columns?: 2 | 3;
+}) {
   const [items, setItems] = useState(initial);
 
-  const remove = async (item: Item) => {
+  const remove = async (item: WishlistEntry) => {
     setItems((prev) => prev.filter((i) => i.id !== item.id));
     await fetch("/api/wishlist", {
       method: "POST",
@@ -28,36 +30,28 @@ export function WishlistList({ initial }: { initial: Item[] }) {
   };
 
   if (items.length === 0) {
-    return <p className="mt-5 text-sm text-obsidian/60">Тут з&#39;являться збережені товари.</p>;
+    return <p className="text-sm text-obsidian/60">Тут зʼявляться збережені товари.</p>;
   }
 
   return (
-    <ul className="mt-5 space-y-4">
+    <div
+      className={`grid grid-cols-1 gap-6 sm:grid-cols-2 ${
+        columns === 3 ? "lg:grid-cols-3" : ""
+      }`}
+    >
       {items.map((item) => (
-        <li key={item.id} className="flex items-center gap-4">
-          <Link
-            href={`/product/${item.slug}`}
-            className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-mint/50"
-          >
-            {item.image && (
-              <Image src={item.image} alt={item.name} fill sizes="56px" className="object-cover" />
-            )}
-          </Link>
-          <div className="min-w-0 flex-1">
-            <Link href={`/product/${item.slug}`} className="block truncate text-sm font-bold hover:text-cobalt">
-              {item.name}
-            </Link>
-            <p className="text-[13px] text-obsidian/60">{formatPrice(item.price)}</p>
-          </div>
+        <div key={item.id} className="relative">
           <button
+            type="button"
             onClick={() => remove(item)}
-            aria-label={`Прибрати ${item.name} з обраного`}
-            className="text-cobalt transition hover:scale-110"
+            aria-label={`Прибрати ${item.product.name} з обраного`}
+            className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-cobalt shadow-sm transition hover:scale-105"
           >
             <HeartIcon className="h-5 w-5" filled />
           </button>
-        </li>
+          <ProductCard product={item.product} />
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }

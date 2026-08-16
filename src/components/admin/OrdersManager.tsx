@@ -1,8 +1,19 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatPrice, formatDate } from "@/lib/format";
+
+type AdminOrderItem = {
+  id: string;
+  name: string;
+  size: string;
+  color: string;
+  image: string;
+  price: number;
+  quantity: number;
+};
 
 type AdminOrder = {
   id: string;
@@ -10,6 +21,7 @@ type AdminOrder = {
   firstName: string;
   lastName: string;
   phone: string;
+  email: string | null;
   city: string;
   warehouse: string;
   paymentMethod: string;
@@ -17,10 +29,12 @@ type AdminOrder = {
   status: string;
   trackingNumber: string | null;
   npStatusText: string | null;
+  subtotal: number;
+  shipping: number;
   total: number;
   promoCode: string | null;
   createdAt: string;
-  items: { id: string; name: string; size: string; color: string; quantity: number }[];
+  items: AdminOrderItem[];
   user: { email: string } | null;
 };
 
@@ -33,6 +47,10 @@ const STATUSES = [
   { value: "DELIVERED", label: "Отримано" },
   { value: "CANCELLED", label: "Скасовано" },
 ];
+
+function isHexColor(value: string): boolean {
+  return /^#[0-9A-Fa-f]{6}$/.test(value.trim());
+}
 
 export function OrdersManager() {
   const queryClient = useQueryClient();
@@ -69,6 +87,7 @@ export function OrdersManager() {
       )}
       {data?.orders.map((order) => {
         const ttnValue = ttnDrafts[order.id] ?? order.trackingNumber ?? "";
+        const contactEmail = order.email || order.user?.email || null;
         return (
           <div key={order.id} className="rounded-card bg-white p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -83,7 +102,7 @@ export function OrdersManager() {
                 </p>
                 <p className="mt-1 text-[13px] text-obsidian/60">
                   {formatDate(order.createdAt)} • {order.firstName} {order.lastName} • {order.phone}
-                  {order.user && ` • ${order.user.email}`}
+                  {contactEmail && ` • ${contactEmail}`}
                 </p>
                 <p className="mt-1 text-[13px] text-obsidian/60">
                   {order.city}, {order.warehouse}
@@ -109,6 +128,67 @@ export function OrdersManager() {
                   {formatPrice(order.total)}
                 </span>
               </div>
+            </div>
+
+            <div className="mt-5 border-t border-black/5 pt-5">
+              <h3 className="text-[13px] font-bold uppercase tracking-wide text-obsidian/50">
+                Товари в замовленні
+              </h3>
+              <ul className="mt-4 space-y-4">
+                {order.items.map((item) => {
+                  const hex = isHexColor(item.color) ? item.color.trim().toUpperCase() : null;
+                  return (
+                    <li key={item.id} className="flex gap-4">
+                      <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl bg-mint/40">
+                        {item.image ? (
+                          <Image
+                            src={item.image}
+                            alt={item.name}
+                            fill
+                            sizes="72px"
+                            className="object-cover"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-obsidian">{item.name}</p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-obsidian/65">
+                          <span className="inline-flex items-center gap-1.5">
+                            {hex && (
+                              <span
+                                className="inline-block h-3.5 w-3.5 rounded-full border border-black/10"
+                                style={{ backgroundColor: hex }}
+                                aria-hidden
+                              />
+                            )}
+                            Колір: {hex ?? item.color}
+                          </span>
+                          <span>Розмір: {item.size}</span>
+                          <span>× {item.quantity}</span>
+                        </div>
+                      </div>
+                      <p className="shrink-0 text-right text-sm font-semibold">
+                        {formatPrice(item.price * item.quantity)}
+                        {item.quantity > 1 && (
+                          <span className="mt-0.5 block text-[11px] font-normal text-obsidian/45">
+                            {formatPrice(item.price)} / шт
+                          </span>
+                        )}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+              <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-obsidian/60">
+                <div className="flex gap-2">
+                  <dt>Товари</dt>
+                  <dd className="font-medium text-obsidian">{formatPrice(order.subtotal)}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt>Доставка</dt>
+                  <dd className="font-medium text-obsidian">{formatPrice(order.shipping)}</dd>
+                </div>
+              </dl>
             </div>
 
             <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-black/5 pt-4">
@@ -141,9 +221,7 @@ export function OrdersManager() {
                 <button
                   type="button"
                   disabled={patch.isPending}
-                  onClick={() =>
-                    patch.mutate({ id: order.id, syncTracking: true })
-                  }
+                  onClick={() => patch.mutate({ id: order.id, syncTracking: true })}
                   className="btn-secondary py-2.5 text-[12px]"
                 >
                   Оновити статус з НП
@@ -155,19 +233,6 @@ export function OrdersManager() {
                 </p>
               )}
             </div>
-
-            <ul className="mt-3 text-[13px] text-obsidian/70">
-              {order.items.map((item) => (
-                <li key={item.id} className="flex items-center gap-2">
-                  <span
-                    className="inline-block h-3 w-3 rounded-full border border-black/10"
-                    style={{ backgroundColor: item.color }}
-                    aria-hidden
-                  />
-                  {item.name} — {item.size} × {item.quantity}
-                </li>
-              ))}
-            </ul>
           </div>
         );
       })}

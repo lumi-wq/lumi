@@ -1,3 +1,5 @@
+import { isFeaturedActive } from "@/lib/featured";
+
 export type ProductCardData = {
   id: string;
   slug: string;
@@ -8,6 +10,7 @@ export type ProductCardData = {
   tag: string | null;
   tagStyle: string | null;
   isSale: boolean;
+  isFeatured: boolean;
   colors: { color: string; colorHex: string }[];
   defaultVariant: { id: string; size: string; color: string } | null;
 };
@@ -22,6 +25,8 @@ export type ProductWithVariants = {
   tag: string | null;
   tagStyle: string | null;
   isSale: boolean;
+  isFeatured?: boolean;
+  featuredAt?: Date | string | null;
   variants: { id: string; size: string; color: string; colorHex: string; stock: number }[];
 };
 
@@ -32,6 +37,7 @@ export function toCardData(p: ProductWithVariants): ProductCardData {
     if (!seenColors.has(hex)) seenColors.set(hex, hex);
   }
   const firstInStock = p.variants.find((v) => v.stock > 0) ?? p.variants[0] ?? null;
+
   return {
     id: p.id,
     slug: p.slug,
@@ -42,6 +48,10 @@ export function toCardData(p: ProductWithVariants): ProductCardData {
     tag: p.tag,
     tagStyle: p.tagStyle,
     isSale: p.isSale,
+    isFeatured: isFeaturedActive({
+      isFeatured: Boolean(p.isFeatured),
+      featuredAt: p.featuredAt,
+    }),
     colors: Array.from(seenColors, ([color, colorHex]) => ({ color, colorHex })).slice(0, 4),
     defaultVariant: firstInStock
       ? { id: firstInStock.id, size: firstInStock.size, color: firstInStock.colorHex }

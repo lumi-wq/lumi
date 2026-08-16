@@ -30,9 +30,11 @@ export function ProductCard({ product }: { product: ProductCardData }) {
 
   const badge = product.isSale
     ? { label: "Розпродаж", style: "dark" as const }
-    : product.tag
-      ? { label: product.tag, style: product.tagStyle }
-      : null;
+    : product.isFeatured
+      ? { label: "Новинка", style: "cobalt" as const }
+      : product.tag
+        ? { label: product.tag, style: product.tagStyle }
+        : null;
 
   return (
     <article className="group overflow-hidden rounded-card bg-white shadow-sm transition hover:shadow-md">

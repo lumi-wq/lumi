@@ -1,7 +1,7 @@
 # LUMI — інтернет-магазин дитячого та підліткового одягу
 
 Повноцінний e-commerce для українського ринку: каталог з фільтрами, кошик, гостьовий checkout з
-Новою Поштою, OTP-авторизація без пароля, профіль з програмою лояльності LUMI CLUB та адмін-панель.
+Новою Поштою, OTP-авторизація без пароля, профіль і адмін-панель.
 
 ## Стек
 
@@ -9,7 +9,7 @@
 - **PostgreSQL + Prisma ORM** (локально — embedded PostgreSQL, без Docker)
 - **Zustand** (кошик з localStorage) + **React Query** (серверні дані)
 - **JWT-сесії** в httpOnly cookie (jose), email + 4-значний OTP код
-- Абстракція оплати: **Monobank Acquiring / mock** + післяплата Новою Поштою
+- Абстракція оплати: **Monobank Acquiring / mock**
 - **Нова Пошта API** (з моком довідників без ключа)
 
 ## Запуск
@@ -51,21 +51,43 @@ npm run dev
 OTP-код у dev-режимі показується прямо на сторінці входу та в консолі сервера
 (реальна відправка листів не налаштована — див. `src/lib/email.ts`).
 
-## Промокоди
+## Оплата (plata by mono / Monobank)
 
-- `LUMILIGHT` — 10%
-- `LUMI20` — 20%
+Керується змінною `PAYMENT_PROVIDER` у `.env` / Vercel:
 
-Безкоштовна доставка від 1 500 ₴.
+| Значення | Коли |
+|---|---|
+| `mock` | Локально / production до готовності рахунку |
+| `monobank` | Тестовий або бойовий Monopay |
 
-## Оплата
+Потрібні змінні для Monopay:
 
-Керується змінною `PAYMENT_PROVIDER` у `.env`:
+- `MONOBANK_TOKEN` — тестовий з [api.monobank.ua](https://api.monobank.ua/) або бойовий з [web.monobank.ua](https://web.monobank.ua/)
+- `NEXT_PUBLIC_SITE_URL` — публічний HTTPS (для webhook). Локально: URL тунелю (ngrok / cloudflared)
 
-- `mock` (за замовчуванням) — одразу «оплачує» замовлення і веде на сторінку успіху
-- `monobank` — потрібен `MONOBANK_TOKEN` (Visa/Mastercard, Apple Pay, Google Pay на сторінці Monobank)
+### Dev: як протестувати Monopay
 
-Також у checkout є **післяплата** через Нову Пошту (оплата при отриманні).
+1. Токен з [api.monobank.ua](https://api.monobank.ua/) → `MONOBANK_TOKEN`
+2. `PAYMENT_PROVIDER=monobank`
+3. Підняти тунель на порт 3000 і вказати його в `NEXT_PUBLIC_SITE_URL`
+4. Перезапустити `npm run dev`, оформити замовлення → «Карткою онлайн»
+5. Тестова картка: будь-який валідний за Луном номер (напр. `4242424242424242`), будь-яка дата/CVV  
+   Apple/Google Pay на тестовому токені не показуються.
+
+### Production checklist (коли буде ФОП-рахунок у mono)
+
+1. Відкрити бізнес-рахунок у monobank і підключити **інтернет-еквайринг (plata by mono)**
+2. Скопіювати **бойовий** токен з [web.monobank.ua](https://web.monobank.ua/)
+3. У Vercel (Production env):
+   - `PAYMENT_PROVIDER=monobank`
+   - `MONOBANK_TOKEN=<бойовий токен>`
+   - `NEXT_PUBLIC_SITE_URL=https://lumi.kids`
+   - **не** ставити `MONOBANK_SKIP_WEBHOOK_VERIFY`
+4. Redeploy / дочекатись деплою
+5. Тестова оплата на мінімальну суму → перевірити success і статус у `/admin/orders`
+6. (Окремо) підключити ПРРО / Checkbox для фіскальних чеків онлайн-оплат
+
+Після зміни токена або URL — обовʼязково redeploy, щоб підхопились env.
 
 ## Нова Пошта (Україна)
 
@@ -73,7 +95,13 @@ OTP-код у dev-режимі показується прямо на сторі
 
 1. Кабінет: [new.novaposhta.ua](https://new.novaposhta.ua/) → **Налаштування → Безпека → Створити ключ**
 2. Вставте ключ у `.env` як `NOVA_POSHTA_API_KEY`
-3. Без ключа працює локальний мок міст/відділень
+3. Без ключа працює локальний мок міст/відділень і fallback-тариф
+
+На checkout після вибору відділення рахуються:
+- вартість доставки (`InternetDocument.getDocumentPrice`) з Сокирян
+- орієнтовна дата (`getDocumentDeliveryDate`) з урахуванням графіка відправки LUMI
+
+Вага: одяг 1 кг/од., сумки 2 кг, шапки/кепки/окуляри 0.5 кг.
 
 ### Вебхук статусів
 

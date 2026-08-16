@@ -18,6 +18,8 @@ export default async function SuccessPage({
       })
     : null;
 
+  const trackHref = order ? `/orders/${encodeURIComponent(order.number)}` : "/orders";
+
   return (
     <div className="container-content flex justify-center py-24">
       <div className="w-full max-w-lg rounded-card bg-white p-10 text-center shadow-sm">
@@ -46,19 +48,23 @@ export default async function SuccessPage({
               </p>
             </div>
             <p className="mt-4 text-xs text-obsidian/50">
-              Ми надіслали деталі на {order.email ?? "ваш телефон"}. Статус можна відстежувати у
-              профілі.
+              Збережіть номер замовлення. Статус можна перевірити за номером і телефоном — без
+              реєстрації. Після входу в профіль історія з цього пристрою та email підтягнеться
+              автоматично.
             </p>
           </>
         ) : (
           <p className="mt-3 text-obsidian/70">Замовлення прийнято в обробку.</p>
         )}
         <div className="mt-8 flex flex-col gap-3">
-          <Link href="/" className="btn-primary w-full">
-            На головну
+          <Link href={trackHref} className="btn-primary w-full">
+            Відслідкувати замовлення
           </Link>
-          <Link href="/profile" className="btn-secondary w-full">
-            Мої замовлення
+          <Link href="/auth" className="btn-secondary w-full">
+            Створити профіль
+          </Link>
+          <Link href="/" className="text-sm font-semibold text-cobalt underline-offset-2 hover:underline">
+            На головну
           </Link>
         </div>
       </div>

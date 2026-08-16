@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "@/lib/format";
+import { applyGuestCookie, getOrCreateGuestId, normalizePhone } from "@/lib/guest";
+import { quoteWarehouseShipping } from "@/lib/novaposhta";
+import { cartWeightKg } from "@/lib/shipping-weight";
 
 const schema = z.object({
   firstName: z.string().min(1),
@@ -10,9 +12,9 @@ const schema = z.object({
   phone: z.string().min(10),
   email: z.string().email().optional().or(z.literal("")),
   city: z.string().min(1),
+  cityRef: z.string().min(1),
   warehouse: z.string().min(1),
-  paymentMethod: z.enum(["card", "cod"]),
-  promoCode: z.string().optional(),
+  paymentMethod: z.literal("card"),
   items: z
     .array(z.object({ variantId: z.string(), quantity: z.number().int().min(1) }))
     .min(1),
@@ -26,11 +28,14 @@ export async function POST(req: Request) {
   }
   const data = parsed.data;
   const user = await getSessionUser();
+  const { guestId, isNew } = getOrCreateGuestId();
 
-  // Ціни та наявність перевіряємо на сервері
   const variants = await prisma.productVariant.findMany({
     where: { id: { in: data.items.map((i) => i.variantId) } },
-    include: { product: true },
+    include: {
+      product: { include: { productType: true } },
+      colorRef: { select: { images: true, colorHex: true, name: true } },
+    },
   });
   if (variants.length !== data.items.length) {
     return NextResponse.json({ error: "Деякі товари недоступні" }, { status: 409 });
@@ -46,55 +51,52 @@ export async function POST(req: Request) {
     0
   );
 
-  let discount = 0;
-  let appliedPromo: string | null = null;
-  if (data.promoCode) {
-    const promo = await prisma.promoCode.findUnique({
-      where: { code: data.promoCode.toUpperCase() },
-    });
-    if (promo?.active) {
-      discount = Math.round((subtotal * promo.discountPercent) / 100);
-      appliedPromo = promo.code;
-    }
-  }
-  // Персональна знижка LUMI CLUB, якщо більша за промокод
-  if (user && user.discountPercent > 0) {
-    const clubDiscount = Math.round((subtotal * user.discountPercent) / 100);
-    if (clubDiscount > discount) {
-      discount = clubDiscount;
-      appliedPromo = "LUMI CLUB";
-    }
-  }
+  const weightKg = cartWeightKg(
+    lines.map(({ item, variant }) => ({
+      quantity: item.quantity,
+      productTypeSlug: variant.product.productType?.slug ?? null,
+    }))
+  );
 
-  const afterDiscount = subtotal - discount;
-  const shipping = afterDiscount >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-  const total = afterDiscount + shipping;
+  const quote = await quoteWarehouseShipping({
+    cityRecipientRef: data.cityRef,
+    weightKg,
+    declaredCost: subtotal,
+  });
+  const shipping = quote.shipping;
+  const total = subtotal + shipping;
 
   const number = `LUMI-${Math.floor(10000 + Math.random() * 90000)}`;
+  const phone = normalizePhone(data.phone) || data.phone.trim();
+  const email = (data.email || user?.email || "").toLowerCase() || null;
 
   const order = await prisma.order.create({
     data: {
       number,
       userId: user?.id,
-      email: data.email || user?.email || null,
+      guestId,
+      email,
       firstName: data.firstName,
       lastName: data.lastName,
-      phone: data.phone,
+      phone,
       city: data.city,
       warehouse: data.warehouse,
       paymentMethod: data.paymentMethod,
       subtotal,
-      discount,
+      discount: 0,
       shipping,
       total,
-      promoCode: appliedPromo,
+      promoCode: null,
       items: {
         create: lines.map(({ item, variant }) => ({
           productId: variant.productId,
           name: variant.product.name,
           size: variant.size,
-          color: variant.color,
-          image: variant.product.images[0] ?? "",
+          color: variant.colorHex || variant.colorRef?.colorHex || variant.color,
+          image:
+            variant.colorRef?.images[0] ??
+            variant.product.images[0] ??
+            "",
           price: variant.product.price,
           quantity: item.quantity,
         })),
@@ -102,7 +104,6 @@ export async function POST(req: Request) {
     },
   });
 
-  // Зменшуємо залишки
   for (const { item, variant } of lines) {
     await prisma.productVariant.update({
       where: { id: variant.id },
@@ -110,10 +111,15 @@ export async function POST(req: Request) {
     });
   }
 
-  // Чистимо серверний кошик користувача
   if (user) {
     await prisma.cartItem.deleteMany({ where: { userId: user.id } });
   }
 
-  return NextResponse.json({ orderId: order.id, number: order.number, total: order.total });
+  const res = NextResponse.json({
+    orderId: order.id,
+    number: order.number,
+    deliveryDate: quote.deliveryDateLabel,
+  });
+  if (isNew) applyGuestCookie(res, guestId);
+  return res;
 }

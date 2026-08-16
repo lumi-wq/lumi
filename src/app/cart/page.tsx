@@ -5,58 +5,128 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCart, cartTotals, cartCount } from "@/store/cart";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatDate, productCountLabel } from "@/lib/format";
+import { ORDER_STATUS_LABELS } from "@/lib/order-status";
 import { TrashIcon, MinusIcon, PlusIcon } from "@/components/Icons";
+
+type RecentOrder = {
+  id: string;
+  number: string;
+  status: string;
+  total: number;
+  createdAt: string;
+  itemsCount: number;
+};
+
+function CartOrdersBlock({ recent }: { recent: RecentOrder[] }) {
+  return (
+    <div className="mt-10 rounded-card border border-black/5 bg-white p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-bold">Мої замовлення</h2>
+          <p className="mt-1 text-sm text-obsidian/60">
+            Статус і ТТН — без реєстрації, за номером і телефоном.
+          </p>
+        </div>
+        <Link href="/orders" className="text-sm font-bold text-cobalt hover:underline">
+          Відслідкувати →
+        </Link>
+      </div>
+
+      {recent.length > 0 ? (
+        <ul className="mt-5 space-y-3">
+          {recent.map((o) => {
+            const status = ORDER_STATUS_LABELS[o.status] ?? ORDER_STATUS_LABELS.NEW;
+            return (
+              <li key={o.id}>
+                <Link
+                  href={`/orders/${encodeURIComponent(o.number)}`}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-black/5 px-4 py-3 transition hover:border-cobalt/40"
+                >
+                  <div>
+                    <p className="font-bold">#{o.number}</p>
+                    <p className="mt-0.5 text-[13px] text-obsidian/60">
+                      {formatDate(o.createdAt)} • {productCountLabel(o.itemsCount)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`rounded-md px-2.5 py-1 text-[11px] font-bold ${status.className}`}>
+                      {status.label}
+                    </span>
+                    <span className="font-bold">{formatPrice(o.total)}</span>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm text-obsidian/55">
+          Недавніх замовлень на цьому пристрої немає. Можна знайти будь-яке за номером на сторінці{" "}
+          <Link href="/orders" className="font-semibold text-cobalt underline">
+            Відслідкувати замовлення
+          </Link>
+          .
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, promo, setQty, remove, setPromo } = useCart();
+  const { items, setQty, remove } = useCart();
   const [mounted, setMounted] = useState(false);
-  const [promoInput, setPromoInput] = useState("");
-  const [promoError, setPromoError] = useState("");
+  const [recent, setRecent] = useState<RecentOrder[]>([]);
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
-    if (promo) setPromoInput(promo.code);
-  }, [promo]);
+    let cancelled = false;
+    fetch("/api/orders/recent")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!cancelled && json?.recent) setRecent(json.recent);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (!mounted) return <div className="container-content py-20" />;
 
-  const totals = cartTotals(items, promo);
-
-  const applyPromo = async () => {
-    setPromoError("");
-    const code = promoInput.trim().toUpperCase();
-    if (!code) return;
-    const res = await fetch("/api/promo/validate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
-    });
-    if (res.ok) {
-      const json = await res.json();
-      setPromo({ code: json.code, percent: json.discountPercent });
-    } else {
-      setPromo(null);
-      setPromoError("Промокод недійсний або неактивний");
-    }
-  };
+  const totals = cartTotals(items, 0);
 
   if (items.length === 0) {
     return (
-      <div className="container-content py-24 text-center">
-        <h1 className="font-display text-3xl font-black">Кошик порожній</h1>
-        <p className="mt-3 text-obsidian/60">Додайте щось стильне — ми підібрали для вас найкраще.</p>
-        <Link href="/category/new" className="btn-primary mt-8">
-          До каталогу
-        </Link>
+      <div className="container-content py-24">
+        <div className="text-center">
+          <h1 className="font-display text-3xl font-black">Кошик порожній</h1>
+          <p className="mt-3 text-obsidian/60">Додайте щось стильне — ми підібрали для вас найкраще.</p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/category/new" className="btn-primary">
+              До каталогу
+            </Link>
+            <Link href="/orders" className="btn-secondary">
+              Відслідкувати замовлення
+            </Link>
+          </div>
+        </div>
+        <div className="mx-auto mt-4 max-w-xl">
+          <CartOrdersBlock recent={recent} />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="container-content py-14">
-      <h1 className="font-display text-3xl font-black md:text-4xl">Кошик ({cartCount(items)})</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h1 className="font-display text-3xl font-black md:text-4xl">Кошик ({cartCount(items)})</h1>
+        <Link href="/orders" className="text-sm font-bold text-cobalt hover:underline">
+          Відслідкувати замовлення →
+        </Link>
+      </div>
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[3fr_2fr]">
         <div className="space-y-4 self-start rounded-card bg-white p-6">
@@ -116,38 +186,9 @@ export default function CartPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-obsidian/70">Доставка (Нова Пошта)</dt>
-              <dd className="text-[13px] font-bold uppercase">
-                {totals.shipping === 0 ? "Безкоштовно" : formatPrice(totals.shipping)}
-              </dd>
+              <dd className="text-[13px] font-bold uppercase">На оформленні</dd>
             </div>
-            {totals.discount > 0 && (
-              <div className="flex justify-between text-cobalt">
-                <dt>Знижка ({promo?.percent}%)</dt>
-                <dd className="font-semibold">−{formatPrice(totals.discount)}</dd>
-              </div>
-            )}
           </dl>
-
-          <div className="mt-6 border-t border-obsidian/10 pt-5">
-            <p className="text-sm font-semibold">Промокод</p>
-            <div className="mt-2.5 flex gap-2">
-              <input
-                value={promoInput}
-                onChange={(e) => setPromoInput(e.target.value)}
-                placeholder="LUMILIGHT"
-                className="input-base flex-1 bg-white py-3"
-              />
-              <button
-                onClick={applyPromo}
-                className={`shrink-0 rounded-input px-4 text-[12px] font-bold uppercase text-white transition ${
-                  promo ? "bg-obsidian" : "bg-cobalt hover:bg-[#2E00CC]"
-                }`}
-              >
-                {promo ? "Застосовано" : "Застосувати"}
-              </button>
-            </div>
-            {promoError && <p className="mt-2 text-xs text-red-600">{promoError}</p>}
-          </div>
 
           <div className="mt-6 flex items-baseline justify-between border-t border-obsidian/10 pt-5">
             <span className="font-display text-lg font-bold">Разом</span>
@@ -157,8 +198,16 @@ export default function CartPage() {
           <button onClick={() => router.push("/checkout")} className="btn-primary mt-6 w-full">
             Оформити замовлення
           </button>
+          <Link
+            href="/orders"
+            className="mt-3 block w-full rounded-input border border-obsidian/15 bg-white py-3 text-center text-sm font-bold text-obsidian transition hover:border-cobalt hover:text-cobalt"
+          >
+            Відслідкувати замовлення
+          </Link>
         </aside>
       </div>
+
+      <CartOrdersBlock recent={recent} />
     </div>
   );
 }

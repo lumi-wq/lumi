@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
+import { typeClusterPath } from "@/lib/seo-landing-paths";
 
 export const GENDER_OPTIONS = [
   { value: "BOY", label: "Хлопчики" },
@@ -14,6 +15,7 @@ export type FilterProductType = {
   slug: string;
   name: string;
   girlOnly: boolean;
+  unisex?: boolean;
 };
 
 type Props = {
@@ -21,16 +23,46 @@ type Props = {
   productTypes: FilterProductType[];
   /** Якщо задано (сторінки Дівчатка / Хлопчики) — фільтр «Для кого» прихований */
   lockedGender?: FilterGender;
+  /** Приховати стать (напр. обрані Окуляри) */
+  hideGenderFilter?: boolean;
+  /** Тип уже зафіксований одним значенням — ховаємо «Категорія» */
+  lockedProductType?: boolean;
+  /**
+   * Типи завжди видимі (Аксесуари: Шапки / Сумки / Окуляри),
+   * без вимоги спочатку обрати стать.
+   */
+  typesAlwaysVisible?: boolean;
+  /** Підпис блоку типів */
+  typeFilterLabel?: string;
+  /** Сховати фільтр росту (аксесуари) */
+  hideSizeFilter?: boolean;
+  /** SEO-лендінги замість ?type= */
+  typeNavParent?: "girls" | "boys" | "accessories";
+  selectedTypeSlug?: string;
 };
 
-export function FiltersPanel({ sizes, productTypes, lockedGender }: Props) {
+export function FiltersPanel({
+  sizes,
+  productTypes,
+  lockedGender,
+  hideGenderFilter,
+  lockedProductType,
+  typesAlwaysVisible,
+  typeFilterLabel = "Категорія",
+  hideSizeFilter,
+  typeNavParent,
+  selectedTypeSlug,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
 
   const selectedGender = lockedGender ?? params.get("gender");
-  const selectedType = params.get("type");
+  const selectedType = selectedTypeSlug ?? params.get("type");
   const selectedSizes = params.get("sizes")?.split(",").filter(Boolean) ?? [];
+  const selectedTypeMeta = productTypes.find((t) => t.slug === selectedType);
+  const hideGender =
+    Boolean(hideGenderFilter) || Boolean(selectedTypeMeta?.unisex);
 
   const update = useCallback(
     (mutate: (p: URLSearchParams) => void) => {
@@ -53,31 +85,42 @@ export function FiltersPanel({ sizes, productTypes, lockedGender }: Props) {
   };
 
   const setGender = (value: string | null) => {
-    if (lockedGender) return;
+    if (lockedGender || hideGender) return;
     update((p) => {
       if (!value) p.delete("gender");
       else p.set("gender", value);
-      p.delete("type");
+      if (!lockedProductType && !typesAlwaysVisible) p.delete("type");
       p.delete("sizes");
     });
   };
 
   const setType = (value: string | null) => {
+    if (lockedProductType) return;
+    if (typeNavParent) {
+      router.push(typeClusterPath(typeNavParent, value));
+      return;
+    }
+    const nextMeta = value ? productTypes.find((t) => t.slug === value) : null;
     update((p) => {
       if (!value) p.delete("type");
       else p.set("type", value);
+      if (nextMeta?.unisex) p.delete("gender");
       p.delete("sizes");
     });
   };
 
   const visibleTypes = productTypes.filter(
-    (t) => !t.girlOnly || selectedGender === "GIRL"
+    (t) => t.unisex || !t.girlOnly || selectedGender === "GIRL" || typesAlwaysVisible
   );
 
+  const showTypeFilter =
+    !lockedProductType &&
+    (typesAlwaysVisible || Boolean(selectedGender) || Boolean(lockedGender));
+
   const hasFilters =
-    (!lockedGender && Boolean(selectedGender)) ||
-    Boolean(selectedType) ||
-    selectedSizes.length > 0;
+    (!lockedGender && !hideGender && Boolean(selectedGender)) ||
+    (!lockedProductType && Boolean(selectedType)) ||
+    (!hideSizeFilter && selectedSizes.length > 0);
 
   return (
     <aside className="w-full shrink-0 lg:w-60">
@@ -85,13 +128,17 @@ export function FiltersPanel({ sizes, productTypes, lockedGender }: Props) {
         <h3 className="font-display text-lg font-bold">Фільтри</h3>
         {hasFilters && (
           <button
-            onClick={() =>
+            onClick={() => {
+              if (typeNavParent) {
+                router.push(typeClusterPath(typeNavParent, null));
+                return;
+              }
               update((p) => {
                 if (!lockedGender) p.delete("gender");
-                p.delete("type");
-                p.delete("sizes");
-              })
-            }
+                if (!lockedProductType) p.delete("type");
+                if (!hideSizeFilter) p.delete("sizes");
+              });
+            }}
             className="text-xs font-semibold text-cobalt underline underline-offset-2"
           >
             Скинути
@@ -99,7 +146,7 @@ export function FiltersPanel({ sizes, productTypes, lockedGender }: Props) {
         )}
       </div>
 
-      {!lockedGender && (
+      {!lockedGender && !hideGender && (
         <div className="mt-8">
           <h4 className="text-sm font-bold">Для кого</h4>
           <div className="mt-4 flex flex-col gap-2">
@@ -123,9 +170,9 @@ export function FiltersPanel({ sizes, productTypes, lockedGender }: Props) {
         </div>
       )}
 
-      {selectedGender ? (
+      {showTypeFilter ? (
         <div className="mt-8">
-          <h4 className="text-sm font-bold">Категорія</h4>
+          <h4 className="text-sm font-bold">{typeFilterLabel}</h4>
           <div className="mt-4 flex flex-col gap-2">
             {visibleTypes.map((t) => {
               const active = selectedType === t.slug;
@@ -146,36 +193,40 @@ export function FiltersPanel({ sizes, productTypes, lockedGender }: Props) {
           </div>
         </div>
       ) : (
-        <p className="mt-8 text-sm text-obsidian/50">
-          Оберіть хлопчиків або дівчаток, щоб побачити категорії.
-        </p>
+        !lockedProductType && (
+          <p className="mt-8 text-sm text-obsidian/50">
+            Оберіть хлопчиків або дівчаток, щоб побачити категорії.
+          </p>
+        )
       )}
 
-      <div className="mt-8">
-        <h4 className="text-sm font-bold">Вік / розмір</h4>
-        {sizes.length === 0 ? (
-          <p className="mt-4 text-sm text-obsidian/50">Немає доступних розмірів</p>
-        ) : (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {sizes.map((size) => {
-              const active = selectedSizes.includes(size);
-              return (
-                <button
-                  key={size}
-                  onClick={() => toggleCsv("sizes", size, selectedSizes)}
-                  className={`rounded-lg border px-3 py-2 text-[13px] font-medium transition ${
-                    active
-                      ? "border-cobalt bg-cobalt/5 font-semibold text-cobalt"
-                      : "border-[#E0E0E0] bg-white hover:border-obsidian"
-                  }`}
-                >
-                  {size}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {!hideSizeFilter && (
+        <div className="mt-8">
+          <h4 className="text-sm font-bold">Ріст</h4>
+          {sizes.length === 0 ? (
+            <p className="mt-4 text-sm text-obsidian/50">Немає доступних розмірів</p>
+          ) : (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {sizes.map((size) => {
+                const active = selectedSizes.includes(size);
+                return (
+                  <button
+                    key={size}
+                    onClick={() => toggleCsv("sizes", size, selectedSizes)}
+                    className={`rounded-lg border px-3 py-2 text-[13px] font-medium transition ${
+                      active
+                        ? "border-cobalt bg-cobalt/5 font-semibold text-cobalt"
+                        : "border-[#E0E0E0] bg-white hover:border-obsidian"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </aside>
   );
 }
