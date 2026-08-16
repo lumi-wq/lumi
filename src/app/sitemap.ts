@@ -5,17 +5,7 @@ import { getSiteUrl } from "@/lib/site";
 
 const VIRTUAL_CATEGORY_SLUGS = ["sale", "new", "girls", "boys", "accessories"] as const;
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = getSiteUrl();
-  const products = await prisma.product.findMany({ select: { slug: true, createdAt: true } });
-  const dbCategories = await prisma.category.findMany({ select: { slug: true } });
-
-  const landingUrls = SEO_LANDINGS.map((l) => ({
-    url: `${base}${l.path}`,
-    changeFrequency: "weekly" as const,
-    priority: l.parent === "root" ? 0.85 : 0.8,
-  }));
-
+function staticEntries(base: string): MetadataRoute.Sitemap {
   return [
     { url: base, changeFrequency: "daily", priority: 1 },
     { url: `${base}/size-guide`, changeFrequency: "monthly", priority: 0.7 },
@@ -26,19 +16,42 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily" as const,
       priority: 0.9,
     })),
-    ...dbCategories
-      .filter((c) => !(VIRTUAL_CATEGORY_SLUGS as readonly string[]).includes(c.slug))
-      .map((c) => ({
-        url: `${base}/category/${c.slug}`,
-        changeFrequency: "weekly" as const,
-        priority: 0.5,
-      })),
-    ...landingUrls,
-    ...products.map((p) => ({
-      url: `${base}/product/${p.slug}`,
-      lastModified: p.createdAt,
+    ...SEO_LANDINGS.map((l) => ({
+      url: `${base}${l.path}`,
       changeFrequency: "weekly" as const,
-      priority: 0.6,
+      priority: l.parent === "root" ? 0.85 : 0.8,
     })),
   ];
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const base = getSiteUrl();
+  const staticUrls = staticEntries(base);
+
+  try {
+    const [products, dbCategories] = await Promise.all([
+      prisma.product.findMany({ select: { slug: true, createdAt: true } }),
+      prisma.category.findMany({ select: { slug: true } }),
+    ]);
+
+    return [
+      ...staticUrls,
+      ...dbCategories
+        .filter((c) => !(VIRTUAL_CATEGORY_SLUGS as readonly string[]).includes(c.slug))
+        .map((c) => ({
+          url: `${base}/category/${c.slug}`,
+          changeFrequency: "weekly" as const,
+          priority: 0.5,
+        })),
+      ...products.map((p) => ({
+        url: `${base}/product/${p.slug}`,
+        lastModified: p.createdAt,
+        changeFrequency: "weekly" as const,
+        priority: 0.6,
+      })),
+    ];
+  } catch (err) {
+    console.error("[sitemap] database unavailable, returning static URLs", err);
+    return staticUrls;
+  }
 }

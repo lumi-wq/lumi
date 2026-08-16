@@ -7,7 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Providers } from "@/components/Providers";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { absoluteUrl, getSiteUrl } from "@/lib/site";
-import { BRAND, BRAND_EMAIL, BRAND_LEGAL } from "@/lib/seo";
+import { BRAND, BRAND_COUNTRY, BRAND_EMAIL, BRAND_LEGAL, BRAND_LOCALITY, BRAND_REGION } from "@/lib/seo";
 import "./globals.css";
 
 // Gabarito та Geist не підтримують кирилицю, тому підключаємо
@@ -15,6 +15,8 @@ import "./globals.css";
 const gabarito = Gabarito({ subsets: ["latin"], variable: "--font-gabarito-latin" });
 const manrope = Manrope({ subsets: ["latin", "cyrillic"], variable: "--font-manrope" });
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
+
+const isVercelPreview = process.env.VERCEL_ENV === "preview";
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
@@ -30,21 +32,39 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: { card: "summary_large_image" },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true },
+  robots: isVercelPreview
+    ? { index: false, follow: false }
+    : {
+        index: true,
+        follow: true,
+        googleBot: { index: true, follow: true },
+      },
+  other: {
+    "geo.region": "UA",
+    "geo.placename": `${BRAND_LOCALITY}, ${BRAND_REGION}`,
   },
 };
 
 const orgJsonLd = {
   "@context": "https://schema.org",
-  "@type": "Organization",
+  "@type": ["Organization", "OnlineStore"],
   name: BRAND,
   legalName: BRAND_LEGAL,
   url: getSiteUrl(),
   email: BRAND_EMAIL,
-  areaServed: "UA",
+  inLanguage: "uk-UA",
+  areaServed: {
+    "@type": "Country",
+    name: "Ukraine",
+    sameAs: "https://www.wikidata.org/wiki/Q212",
+  },
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: BRAND_LOCALITY,
+    addressRegion: BRAND_REGION,
+    addressCountry: BRAND_COUNTRY,
+  },
+  availableLanguage: ["uk"],
 };
 
 const websiteJsonLd = {
@@ -65,7 +85,7 @@ const websiteJsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="uk" className={`${gabarito.variable} ${manrope.variable} ${GeistSans.variable} ${inter.variable}`}>
+    <html lang="uk-UA" className={`${gabarito.variable} ${manrope.variable} ${GeistSans.variable} ${inter.variable}`}>
       <body>
         <JsonLd data={orgJsonLd} />
         <JsonLd data={websiteJsonLd} />
