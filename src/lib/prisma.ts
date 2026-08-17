@@ -6,7 +6,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /** Підвищуйте після змін схеми, щоб у dev скинути stale PrismaClient у HMR. */
-const PRISMA_CLIENT_REV = 9;
+const PRISMA_CLIENT_REV = 10;
 
 if (globalForPrisma.__lumiPrismaRev !== PRISMA_CLIENT_REV) {
   void globalForPrisma.prisma?.$disconnect().catch(() => {});

@@ -8,6 +8,8 @@ import { useCart, cartTotals, cartCount } from "@/store/cart";
 import { formatPrice, formatDate, productCountLabel } from "@/lib/format";
 import { ORDER_STATUS_LABELS } from "@/lib/order-status";
 import { TrashIcon, MinusIcon, PlusIcon } from "@/components/Icons";
+import { ordersEnabled } from "@/lib/orders-enabled";
+import { OrdersClosedNotice } from "@/components/shop/OrdersClosedNotice";
 
 type RecentOrder = {
   id: string;
@@ -195,9 +197,13 @@ export default function CartPage() {
             <span className="text-2xl font-bold text-cobalt">{formatPrice(totals.total)}</span>
           </div>
 
-          <button onClick={() => router.push("/checkout")} className="btn-primary mt-6 w-full">
-            Оформити замовлення
-          </button>
+          {ordersEnabled() ? (
+            <button onClick={() => router.push("/checkout")} className="btn-primary mt-6 w-full">
+              Оформити замовлення
+            </button>
+          ) : (
+            <OrdersClosedNotice className="mt-6" />
+          )}
           <Link
             href="/orders"
             className="mt-3 block w-full rounded-input border border-obsidian/15 bg-white py-3 text-center text-sm font-bold text-obsidian transition hover:border-cobalt hover:text-cobalt"

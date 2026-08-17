@@ -8,14 +8,15 @@ import {
   productColorsSchema,
 } from "@/lib/product-colors";
 import { isFeaturedActive } from "@/lib/featured";
+import { resolveStorefrontPrices } from "@/lib/storefront-price";
 
 const updateSchema = z
   .object({
     name: z.string().min(1).optional(),
     slug: z.string().min(1).optional(),
     description: z.string().min(1).optional(),
-    price: z.number().int().min(1).optional(),
-    compareAtPrice: z.number().int().min(1).nullable().optional(),
+    basePrice: z.number().int().min(1).optional(),
+    compareAtBasePrice: z.number().int().min(1).nullable().optional(),
     categoryId: z.string().min(1).optional(),
     images: z.array(imagePath).optional(),
     tag: z.string().nullable().optional(),
@@ -29,14 +30,14 @@ const updateSchema = z
   })
   .superRefine((data, ctx) => {
     if (
-      data.compareAtPrice != null &&
-      data.price != null &&
-      data.compareAtPrice <= data.price
+      data.compareAtBasePrice != null &&
+      data.basePrice != null &&
+      data.compareAtBasePrice <= data.basePrice
     ) {
       ctx.addIssue({
         code: "custom",
-        path: ["compareAtPrice"],
-        message: "Стара ціна має бути вищою за поточну",
+        path: ["compareAtBasePrice"],
+        message: "Стара базова ціна має бути вищою за поточну базову",
       });
     }
     if (data.colors) {
@@ -58,7 +59,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!parsed.success) {
     return NextResponse.json({ error: "Невірні дані" }, { status: 400 });
   }
-  const { colors: rawColors, images: _ignored, ...data } = parsed.data;
+  const {
+    colors: rawColors,
+    images: _ignored,
+    basePrice: basePriceIn,
+    compareAtBasePrice: compareAtBaseIn,
+    ...data
+  } = parsed.data;
 
   const existing = await prisma.product.findUnique({
     where: { id: params.id },
@@ -67,6 +74,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       productTypeId: true,
       isFeatured: true,
       featuredAt: true,
+      basePrice: true,
+      compareAtBasePrice: true,
     },
   });
   if (!existing) {
@@ -122,12 +131,30 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const { isFeatured: _isFeatured, isSale: _isSale, ...rest } = data;
   const colors = rawColors ? normalizeProductColors(rawColors) : null;
 
+  const priceFieldsTouched = basePriceIn !== undefined || compareAtBaseIn !== undefined;
+  let pricePatch: ReturnType<typeof resolveStorefrontPrices> | Record<string, never> = {};
+  if (priceFieldsTouched) {
+    try {
+      pricePatch = resolveStorefrontPrices({
+        basePrice: basePriceIn ?? existing.basePrice,
+        compareAtBasePrice:
+          compareAtBaseIn !== undefined ? compareAtBaseIn : existing.compareAtBasePrice,
+      });
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "Невірні ціни" },
+        { status: 400 }
+      );
+    }
+  }
+
   const product = await prisma.$transaction(async (tx) => {
     const updated = await tx.product.update({
       where: { id: params.id },
       data: {
         ...rest,
         ...featuredPatch,
+        ...pricePatch,
         ...(colors ? { images: colors[0].images } : {}),
       },
     });

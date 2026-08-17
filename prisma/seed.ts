@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { resolveStorefrontPrices } from "../src/lib/storefront-price";
 
 const prisma = new PrismaClient();
 
@@ -443,13 +444,16 @@ async function main() {
             ];
       const typeSlug = p.typeSlug ?? defaultType;
       const images = imagesFor(offset + i);
+      const prices = resolveStorefrontPrices({
+        basePrice: p.price,
+        compareAtBasePrice: p.compareAtPrice ?? null,
+      });
       const product = await prisma.product.create({
         data: {
           slug: p.slug,
           name: p.name,
           description: p.description,
-          price: p.price,
-          compareAtPrice: p.compareAtPrice ?? null,
+          ...prices,
           images,
           tag: p.tag ?? null,
           tagStyle: p.tagStyle ?? "cobalt",

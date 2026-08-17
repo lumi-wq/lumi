@@ -8,6 +8,7 @@ import {
   productColorsSchema,
 } from "@/lib/product-colors";
 import { expireFeaturedProducts } from "@/lib/featured";
+import { pricingAdminHint, resolveStorefrontPrices } from "@/lib/storefront-price";
 
 export async function GET() {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Заборонено" }, { status: 403 });
@@ -21,7 +22,7 @@ export async function GET() {
     },
     orderBy: { createdAt: "desc" },
   });
-  return NextResponse.json({ products });
+  return NextResponse.json({ products, pricingHint: pricingAdminHint() });
 }
 
 const productSchema = z
@@ -29,8 +30,8 @@ const productSchema = z
     name: z.string().min(1),
     slug: z.string().min(1),
     description: z.string().min(1),
-    price: z.number().int().min(1),
-    compareAtPrice: z.number().int().min(1).nullable().optional(),
+    basePrice: z.number().int().min(1),
+    compareAtBasePrice: z.number().int().min(1).nullable().optional(),
     categoryId: z.string().min(1),
     images: z.array(imagePath).optional(),
     tag: z.string().nullable().optional(),
@@ -43,11 +44,11 @@ const productSchema = z
     colors: productColorsSchema,
   })
   .superRefine((data, ctx) => {
-    if (data.compareAtPrice != null && data.compareAtPrice <= data.price) {
+    if (data.compareAtBasePrice != null && data.compareAtBasePrice <= data.basePrice) {
       ctx.addIssue({
         code: "custom",
-        path: ["compareAtPrice"],
-        message: "Стара ціна має бути вищою за поточну",
+        path: ["compareAtBasePrice"],
+        message: "Стара базова ціна має бути вищою за поточну базову",
       });
     }
     const normalized = normalizeProductColors(data.colors);
@@ -67,10 +68,21 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Невірні дані товару" }, { status: 400 });
   }
-  const { colors: rawColors, images: _ignored, ...data } = parsed.data;
+  const { colors: rawColors, images: _ignored, basePrice, compareAtBasePrice, ...data } =
+    parsed.data;
   const colors = normalizeProductColors(rawColors);
   if (colors.length === 0) {
     return NextResponse.json({ error: "Додайте колір з фото та розмірами" }, { status: 400 });
+  }
+
+  let prices;
+  try {
+    prices = resolveStorefrontPrices({ basePrice, compareAtBasePrice });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Невірні ціни" },
+      { status: 400 }
+    );
   }
 
   const productType = await prisma.productType.findUnique({ where: { id: data.productTypeId } });
@@ -98,6 +110,7 @@ export async function POST(req: Request) {
     const created = await tx.product.create({
       data: {
         ...data,
+        ...prices,
         isFeatured,
         isSale,
         featuredAt: isFeatured ? new Date() : null,

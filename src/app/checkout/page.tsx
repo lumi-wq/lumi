@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useCart, cartTotals } from "@/store/cart";
 import { formatPrice } from "@/lib/format";
+import { ordersEnabled } from "@/lib/orders-enabled";
+import { OrdersClosedNotice } from "@/components/shop/OrdersClosedNotice";
 
 type City = { ref: string; name: string; cityRef: string };
 type Warehouse = { ref: string; description: string };
@@ -94,6 +96,18 @@ export default function CheckoutPage() {
   });
 
   if (!mounted) return <div className="container-content py-20" />;
+
+  if (!ordersEnabled()) {
+    return (
+      <div className="container-content max-w-xl py-24">
+        <h1 className="font-display text-3xl font-black md:text-4xl">Оформлення замовлення</h1>
+        <OrdersClosedNotice className="mt-8" />
+        <Link href="/category/sale" className="btn-secondary mt-8">
+          До каталогу
+        </Link>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

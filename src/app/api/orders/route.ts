@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { applyGuestCookie, getOrCreateGuestId, normalizePhone } from "@/lib/guest";
 import { quoteWarehouseShipping } from "@/lib/novaposhta";
 import { cartWeightKg } from "@/lib/shipping-weight";
+import { ORDERS_CLOSED_MESSAGE, ordersEnabled } from "@/lib/orders-enabled";
 
 const schema = z.object({
   firstName: z.string().min(1),
@@ -21,6 +22,10 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
+  if (!ordersEnabled()) {
+    return NextResponse.json({ error: ORDERS_CLOSED_MESSAGE }, { status: 403 });
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
