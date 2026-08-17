@@ -3,13 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { toCardData } from "@/lib/types";
-import { activeFeaturedWhere, expireFeaturedProducts } from "@/lib/featured";
 import { ProductGrid } from "@/components/product/ProductGrid";
-import { NewsletterForm } from "@/components/home/NewsletterForm";
 import { ArrowRightIcon } from "@/components/Icons";
 import { canonicalMetadata } from "@/lib/seo";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   ...canonicalMetadata("/"),
@@ -36,75 +34,53 @@ const CATEGORY_TILES = [
   },
 ];
 
-const LIFESTYLE = [
-  "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1522771930-78848d9293e8?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1476234251651-f353703a034d?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1471286174890-9c112ffca5b4?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&w=600&q=80",
-];
-
 export default async function HomePage() {
-  await expireFeaturedProducts();
-
-  const [featured, sale] = await Promise.all([
-    prisma.product.findMany({
-      where: activeFeaturedWhere(),
-      include: { variants: true },
-      orderBy: [{ featuredAt: "desc" }, { createdAt: "desc" }],
-      take: 6,
-    }),
-    prisma.product.findMany({
-      where: { isSale: true },
-      include: { variants: true },
-      orderBy: { price: "asc" },
-      take: 6,
-    }),
-  ]);
+  const sale = await prisma.product.findMany({
+    where: { isSale: true },
+    include: { variants: true },
+    orderBy: { createdAt: "desc" },
+    take: 8,
+  });
 
   return (
     <>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-mint">
-        <div className="grid lg:grid-cols-2">
-          <div className="flex items-center px-5 py-16 md:px-10 lg:px-20 lg:py-24">
-            <div className="max-w-xl">
-              <span className="inline-block rounded-md bg-cobalt/10 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-cobalt">
-                Розпродаж залишків
-              </span>
-              <h1 className="mt-6 font-display text-4xl font-black uppercase leading-[1.05] tracking-tight text-cobalt md:text-[56px]">
-                Одяг для дітей 6–16 років
-              </h1>
-              <p className="mt-6 max-w-md text-lg leading-relaxed text-obsidian/80">
-                Зручні речі з натуральних матеріалів. Доставка Новою Поштою по Україні — зараз ще й
-                знижки на сезонні залишки.
-              </p>
-              <div className="mt-10 flex flex-wrap gap-4">
-                <Link href="/category/sale" className="btn-primary">
-                  Дивитись розпродаж
-                </Link>
-                <Link href="/category/new" className="btn-secondary">
-                  Новинки
-                </Link>
-              </div>
+      <section className="bg-mint">
+        <div className="container-content flex flex-col items-center gap-8 py-12 md:flex-row md:items-center md:py-14 lg:gap-16">
+          <div className="max-w-xl">
+            <span className="inline-block rounded-md bg-cobalt/10 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-cobalt">
+              Розпродаж залишків
+            </span>
+            <h1 className="mt-5 font-display text-4xl font-black uppercase leading-[1.05] tracking-tight text-cobalt md:text-[44px]">
+              Одяг для дітей 6–16 років
+            </h1>
+            <p className="mt-4 max-w-md text-lg leading-relaxed text-obsidian/80">
+              Зручні речі з натуральних матеріалів. Доставка Новою Поштою по Україні — зараз ще й
+              знижки на сезонні залишки.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link href="/category/sale" className="btn-primary">
+                Дивитись розпродаж
+              </Link>
+              <Link href="/category/new" className="btn-secondary">
+                Новинки
+              </Link>
             </div>
           </div>
-          <div className="relative min-h-[320px] lg:min-h-[640px]">
+          <div className="relative h-56 w-full overflow-hidden rounded-card md:h-72 md:max-w-md lg:h-80 lg:max-w-lg">
             <Image
               src={HERO_IMAGE}
               alt="Діти в одязі LUMI"
               fill
               priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
+              sizes="(max-width: 768px) 100vw, 40vw"
               className="object-cover"
             />
           </div>
         </div>
       </section>
 
-      {/* Розпродаж */}
       {sale.length > 0 && (
-        <section className="bg-white py-20">
+        <section className="bg-white py-16 md:py-20">
           <div className="container-content">
             <div className="flex items-end justify-between gap-4">
               <div>
@@ -119,7 +95,7 @@ export default async function HomePage() {
               </Link>
             </div>
             <div className="mt-10">
-              <ProductGrid products={sale.map(toCardData)} />
+              <ProductGrid products={sale.map(toCardData)} columns={4} />
             </div>
           </div>
         </section>
@@ -160,67 +136,6 @@ export default async function HomePage() {
                 </span>
               </Link>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Найпопулярніші товари */}
-      <section className="bg-white py-20">
-        <div className="container-content">
-          <p className="text-sm font-semibold uppercase tracking-widest text-cobalt">Хіти продажів</p>
-          <h2 className="mt-2 font-display text-3xl font-black md:text-[38px]">
-            Найпопулярніші товари Lumi
-          </h2>
-          <div className="mt-10">
-            <ProductGrid products={featured.map(toCardData)} />
-          </div>
-        </div>
-      </section>
-
-      {/* Lifestyle */}
-      <section className="py-20">
-        <div className="container-content">
-          <div className="flex items-end justify-between">
-            <h2 className="font-display text-3xl font-black md:text-[38px]">Як носять наші клієнти</h2>
-            <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noreferrer"
-              className="text-[15px] font-bold text-cobalt"
-            >
-              @LUMISTUDIO
-            </a>
-          </div>
-          <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-5">
-            {LIFESTYLE.map((src, i) => (
-              <div
-                key={src}
-                className={`relative h-52 overflow-hidden rounded-card md:h-60 ${
-                  i === 4 ? "hidden md:block" : ""
-                }`}
-              >
-                <Image
-                  src={src}
-                  alt={`Клієнт LUMI ${i + 1}`}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 20vw"
-                  className="object-cover transition duration-300 hover:scale-105"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Розсилка */}
-      <section className="bg-chalk pb-24 pt-4">
-        <div className="container-content">
-          <div className="rounded-3xl bg-mint px-6 py-16 text-center md:px-16">
-            <h2 className="font-display text-3xl font-black md:text-4xl">Будь в курсі новинок</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-obsidian/70">
-              Дізнавайся першим про нові колекції, акції та отримай знижку 10% на перше замовлення.
-            </p>
-            <NewsletterForm />
           </div>
         </div>
       </section>

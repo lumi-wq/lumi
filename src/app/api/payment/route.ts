@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getPaymentProvider } from "@/lib/payments";
+import { ORDERS_CLOSED_MESSAGE, ordersEnabled } from "@/lib/orders-enabled";
 
 const schema = z.object({ orderId: z.string() });
 
 export async function POST(req: Request) {
+  if (!ordersEnabled()) {
+    return NextResponse.json({ error: ORDERS_CLOSED_MESSAGE }, { status: 403 });
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

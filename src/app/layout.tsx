@@ -33,6 +33,15 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: { card: "summary_large_image" },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon.png", type: "image/png", sizes: "48x48" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  manifest: "/site.webmanifest",
   robots: isVercelPreview
     ? { index: false, follow: false }
     : {
@@ -52,6 +61,7 @@ const orgJsonLd = {
   name: BRAND,
   legalName: BRAND_LEGAL,
   url: getSiteUrl(),
+  logo: absoluteUrl("/icon-192.png"),
   email: BRAND_EMAIL,
   inLanguage: "uk-UA",
   areaServed: {
