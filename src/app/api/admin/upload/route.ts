@@ -1,45 +1,43 @@
 import { NextResponse } from "next/server";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join, extname } from "node:path";
-import { randomBytes } from "node:crypto";
 import { requireAdmin } from "@/lib/auth";
+import { MAX_UPLOAD_BYTES, sniffImage, storeProductImage } from "@/lib/product-image-upload";
 
-const MAX_BYTES = 8 * 1024 * 1024;
-const ALLOWED = new Map([
-  ["image/jpeg", ".jpg"],
-  ["image/png", ".png"],
-  ["image/webp", ".webp"],
-  ["image/gif", ".gif"],
-]);
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  if (!(await requireAdmin())) {
-    return NextResponse.json({ error: "Заборонено" }, { status: 403 });
-  }
+  try {
+    if (!(await requireAdmin())) {
+      return NextResponse.json({ error: "Заборонено" }, { status: 403 });
+    }
 
-  const form = await req.formData().catch(() => null);
-  if (!form) {
-    return NextResponse.json({ error: "Невірні дані" }, { status: 400 });
-  }
+    const form = await req.formData().catch(() => null);
+    if (!form) {
+      return NextResponse.json({ error: "Невірні дані" }, { status: 400 });
+    }
 
-  const file = form.get("file");
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: "Файл не передано" }, { status: 400 });
-  }
-  if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "Файл більший за 8 МБ" }, { status: 400 });
-  }
+    const file = form.get("file");
+    if (!(file instanceof File)) {
+      return NextResponse.json({ error: "Файл не передано" }, { status: 400 });
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      return NextResponse.json({ error: "Файл більший за 8 МБ" }, { status: 400 });
+    }
 
-  const ext = ALLOWED.get(file.type) ?? (extname(file.name).toLowerCase() || null);
-  if (!ext || ![...ALLOWED.values()].includes(ext)) {
-    return NextResponse.json({ error: "Дозволені формати: JPG, PNG, WebP, GIF" }, { status: 400 });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const sniffed = sniffImage(buffer, file.name, file.type);
+    if (!sniffed) {
+      return NextResponse.json(
+        { error: "Дозволені формати: JPG, PNG, WebP, GIF. HEIC з iPhone збережіть як JPG." },
+        { status: 400 }
+      );
+    }
+
+    const url = await storeProductImage(buffer, sniffed.ext, sniffed.contentType);
+    return NextResponse.json({ url });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Не вдалося зберегти фото";
+    console.error("[admin/upload]", err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const dir = join(process.cwd(), "public", "uploads");
-  await mkdir(dir, { recursive: true });
-  const filename = `${Date.now()}-${randomBytes(4).toString("hex")}${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(join(dir, filename), buffer);
-
-  return NextResponse.json({ url: `/uploads/${filename}` });
 }

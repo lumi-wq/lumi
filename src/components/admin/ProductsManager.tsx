@@ -332,9 +332,19 @@ export function ProductsManager({
         const body = new FormData();
         body.append("file", file);
         const res = await fetch("/api/admin/upload", { method: "POST", body });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Не вдалося завантажити фото");
-        uploaded.push(json.url as string);
+        const text = await res.text();
+        let json: { error?: string; url?: string } = {};
+        try {
+          json = text ? (JSON.parse(text) as { error?: string; url?: string }) : {};
+        } catch {
+          throw new Error(
+            res.ok
+              ? "Порожня відповідь сервера"
+              : `Не вдалося завантажити фото (${res.status}). Спробуйте JPG до 4 МБ.`
+          );
+        }
+        if (!res.ok || !json.url) throw new Error(json.error ?? "Не вдалося завантажити фото");
+        uploaded.push(json.url);
       }
       const color = form.colors.find((c) => c.key === key);
       if (!color) return;
