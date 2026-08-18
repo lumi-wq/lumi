@@ -6,7 +6,10 @@ const imagePath = z
   .string()
   .min(1)
   .refine(
-    (v) => v.startsWith("/uploads/") || /^https?:\/\//.test(v),
+    (v) =>
+      v.startsWith("/uploads/") ||
+      v.startsWith("/api/media/") ||
+      /^https?:\/\//.test(v),
     "Невірний шлях зображення"
   );
 

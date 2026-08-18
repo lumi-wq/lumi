@@ -55,12 +55,26 @@ export async function storeProductImage(buffer: Buffer, ext: string, contentType
   const token = process.env.BLOB_READ_WRITE_TOKEN;
 
   if (token) {
-    const blob = await put(`products/${filename}`, buffer, {
-      access: "public",
-      token,
-      contentType,
-    });
-    return blob.url;
+    const pathname = `products/${filename}`;
+    const access = process.env.BLOB_ACCESS === "public" ? "public" : "private";
+    try {
+      const blob = await put(pathname, buffer, {
+        access,
+        token,
+        contentType,
+      });
+      return access === "public" ? blob.url : `/api/media/${pathname}`;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (!/access on a (private|public) store/i.test(message)) throw err;
+      const fallback = access === "public" ? "private" : "public";
+      const blob = await put(pathname, buffer, {
+        access: fallback,
+        token,
+        contentType,
+      });
+      return fallback === "public" ? blob.url : `/api/media/${pathname}`;
+    }
   }
 
   if (process.env.VERCEL) {
