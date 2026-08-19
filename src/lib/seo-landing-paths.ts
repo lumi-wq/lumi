@@ -3,6 +3,7 @@ export const PRODUCT_TYPE_TO_CLUSTER: Record<string, string> = {
   outerwear: "verkhniy-odyag",
   sportswear: "sportyvni-kostyumy",
   suits: "kostyumy",
+  sets: "komplekty",
   tshirts: "futbolky",
   pants: "shtany",
   shorts: "shorty",
