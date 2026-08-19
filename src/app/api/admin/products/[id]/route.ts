@@ -8,6 +8,7 @@ import {
   productColorsSchema,
 } from "@/lib/product-colors";
 import { isFeaturedActive } from "@/lib/featured";
+import { allocateProductSlug, prismaErrorResponse } from "@/lib/product-slug";
 
 const updateSchema = z
   .object({
@@ -122,48 +123,58 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const { isFeatured: _isFeatured, isSale: _isSale, ...rest } = data;
   const colors = rawColors ? normalizeProductColors(rawColors) : null;
 
-  const product = await prisma.$transaction(async (tx) => {
-    const updated = await tx.product.update({
-      where: { id: params.id },
-      data: {
-        ...rest,
-        ...featuredPatch,
-        ...(colors ? { images: colors[0].images } : {}),
-      },
+  try {
+    const slug = rest.slug
+      ? await allocateProductSlug(prisma, rest.slug, params.id)
+      : undefined;
+    const product = await prisma.$transaction(async (tx) => {
+      const updated = await tx.product.update({
+        where: { id: params.id },
+        data: {
+          ...rest,
+          ...(slug ? { slug } : {}),
+          ...featuredPatch,
+          ...(colors ? { images: colors[0].images } : {}),
+        },
+      });
+
+      if (colors) {
+        await tx.productVariant.deleteMany({ where: { productId: params.id } });
+        await tx.productColor.deleteMany({ where: { productId: params.id } });
+
+        for (let i = 0; i < colors.length; i++) {
+          const c = colors[i];
+          const colorRow = await tx.productColor.create({
+            data: {
+              productId: params.id,
+              name: c.name,
+              colorHex: c.colorHex,
+              images: c.images,
+              sortOrder: i,
+            },
+          });
+          await tx.productVariant.createMany({
+            data: c.sizes.map((s) => ({
+              productId: params.id,
+              colorId: colorRow.id,
+              size: s.size,
+              color: c.name,
+              colorHex: c.colorHex,
+              stock: s.stock,
+            })),
+          });
+        }
+      }
+
+      return updated;
     });
 
-    if (colors) {
-      await tx.productVariant.deleteMany({ where: { productId: params.id } });
-      await tx.productColor.deleteMany({ where: { productId: params.id } });
-
-      for (let i = 0; i < colors.length; i++) {
-        const c = colors[i];
-        const colorRow = await tx.productColor.create({
-          data: {
-            productId: params.id,
-            name: c.name,
-            colorHex: c.colorHex,
-            images: c.images,
-            sortOrder: i,
-          },
-        });
-        await tx.productVariant.createMany({
-          data: c.sizes.map((s) => ({
-            productId: params.id,
-            colorId: colorRow.id,
-            size: s.size,
-            color: c.name,
-            colorHex: c.colorHex,
-            stock: s.stock,
-          })),
-        });
-      }
-    }
-
-    return updated;
-  });
-
-  return NextResponse.json({ product });
+    return NextResponse.json({ product });
+  } catch (err) {
+    console.error("[admin/products PATCH]", err);
+    const { error, status } = prismaErrorResponse(err);
+    return NextResponse.json({ error }, { status });
+  }
 }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {

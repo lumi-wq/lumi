@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/format";
 import { normalizeHex } from "@/lib/color";
 import { DEFAULT_HEIGHT_SIZES, HEIGHT_SIZES, compareSizes } from "@/lib/sizes";
 import { ImageColorPicker } from "@/components/admin/ImageColorPicker";
+import { prepareProductImage, readJsonResponse } from "@/lib/prepare-product-image";
 
 type Category = { id: string; name: string; slug?: string };
 type ProductTypeOption = {
@@ -113,7 +114,10 @@ function toPayload(form: FormState) {
   const compareAt = form.compareAtPrice.trim();
   return {
     name: form.name,
-    slug: form.slug || slugify(form.name) || `product-${Date.now()}`,
+    slug:
+      (form.id ? form.slug : undefined) ||
+      slugify(form.name) ||
+      `product-${Date.now()}`,
     description: form.description,
     price: Number(form.price),
     compareAtPrice: compareAt ? Number(compareAt) : null,
@@ -192,7 +196,10 @@ export function ProductsManager({
           body: JSON.stringify(payload),
         }
       );
-      if (!res.ok) throw new Error((await res.json()).error ?? "Помилка збереження");
+      if (!res.ok) {
+        const json = await readJsonResponse<{ error?: string }>(res);
+        throw new Error(json.error ?? "Помилка збереження");
+      }
     },
     onSuccess: () => {
       setForm(null);
@@ -316,21 +323,12 @@ export function ProductsManager({
     setError("");
     try {
       const uploaded: string[] = [];
-      for (const file of Array.from(files)) {
+      for (const original of Array.from(files)) {
+        const file = await prepareProductImage(original);
         const body = new FormData();
         body.append("file", file);
         const res = await fetch("/api/admin/upload", { method: "POST", body });
-        const text = await res.text();
-        let json: { error?: string; url?: string } = {};
-        try {
-          json = text ? (JSON.parse(text) as { error?: string; url?: string }) : {};
-        } catch {
-          throw new Error(
-            res.ok
-              ? "Порожня відповідь сервера"
-              : `Не вдалося завантажити фото (${res.status}). Спробуйте JPG до 4 МБ.`
-          );
-        }
+        const json = await readJsonResponse<{ error?: string; url?: string }>(res);
         if (!res.ok || !json.url) throw new Error(json.error ?? "Не вдалося завантажити фото");
         uploaded.push(json.url);
       }
@@ -518,7 +516,7 @@ export function ProductsManager({
                       {uploading ? "Завантаження..." : "Додати фото"}
                       <input
                         type="file"
-                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif"
                         multiple
                         className="hidden"
                         disabled={uploading}

@@ -4,6 +4,7 @@ import { MAX_UPLOAD_BYTES, sniffImage, storeProductImage } from "@/lib/product-i
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
@@ -19,6 +20,12 @@ export async function POST(req: Request) {
     const file = form.get("file");
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "Файл не передано" }, { status: 400 });
+    }
+    if (file.size === 0) {
+      return NextResponse.json(
+        { error: "Файл не дійшов до сервера. Стисніть фото або збережіть як JPG до 4 МБ." },
+        { status: 400 }
+      );
     }
     if (file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json({ error: "Файл більший за 8 МБ" }, { status: 400 });
