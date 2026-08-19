@@ -5,12 +5,37 @@ import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/store/cart";
 import type { ProductCardData } from "@/lib/types";
+import { productItem, trackAddToCart, trackSelectItem, variantLabel } from "@/lib/ga";
 import { Tag } from "./Tag";
 import { ProductPrice } from "./ProductPrice";
 
-export function ProductCard({ product }: { product: ProductCardData }) {
+export function ProductCard({
+  product,
+  index,
+  listId,
+  listName,
+}: {
+  product: ProductCardData;
+  index?: number;
+  listId?: string;
+  listName?: string;
+}) {
   const add = useCart((s) => s.add);
   const [added, setAdded] = useState(false);
+
+  const item = productItem({
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    variant: product.defaultVariant
+      ? variantLabel(product.defaultVariant.size, product.defaultVariant.color)
+      : undefined,
+    index,
+    listId,
+    listName,
+  });
+
+  const onSelect = () => trackSelectItem(item, listId, listName);
 
   const quickAdd = () => {
     if (!product.defaultVariant) return;
@@ -24,6 +49,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       size: product.defaultVariant.size,
       price: product.price,
     });
+    trackAddToCart(item);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   };
@@ -38,7 +64,11 @@ export function ProductCard({ product }: { product: ProductCardData }) {
 
   return (
     <article className="group overflow-hidden rounded-card bg-white shadow-sm transition hover:shadow-md">
-      <Link href={`/product/${product.slug}`} className="relative block h-[320px] overflow-hidden bg-mint/40">
+      <Link
+        href={`/product/${product.slug}`}
+        onClick={onSelect}
+        className="relative block h-[320px] overflow-hidden bg-mint/40"
+      >
         {product.image && (
           <Image
             src={product.image}
@@ -56,7 +86,11 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       </Link>
       <div className="space-y-3 p-4">
         <div>
-          <Link href={`/product/${product.slug}`} className="text-base font-medium hover:text-cobalt">
+          <Link
+            href={`/product/${product.slug}`}
+            onClick={onSelect}
+            className="text-base font-medium hover:text-cobalt"
+          >
             {product.name}
           </Link>
           <ProductPrice

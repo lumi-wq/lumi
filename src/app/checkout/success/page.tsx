@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { CheckIcon } from "@/components/Icons";
+import { PurchaseTracker } from "@/components/analytics/PurchaseTracker";
 
 export const metadata = { title: "Замовлення оформлено" };
 export const dynamic = "force-dynamic";
@@ -22,6 +23,14 @@ export default async function SuccessPage({
 
   return (
     <div className="container-content flex justify-center py-24">
+      {order && (
+        <PurchaseTracker
+          orderNumber={order.number}
+          total={order.total}
+          shipping={order.shipping}
+          items={order.items}
+        />
+      )}
       <div className="w-full max-w-lg rounded-card bg-white p-10 text-center shadow-sm">
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-mint text-cobalt">
           <CheckIcon className="h-7 w-7" />

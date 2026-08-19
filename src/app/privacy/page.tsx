@@ -41,7 +41,12 @@ export default function PrivacyPage() {
           <li>список обраного (wishlist) для гостя або авторизованого користувача;</li>
           <li>
             технічні дані, потрібні для роботи сайту: cookie сесії / гостя, дані кошика в
-            localStorage браузера.
+            localStorage браузера;
+          </li>
+          <li>
+            дані аналітики (за вашою згодою): сторінки, які ви відкриваєте, кліки по категоріях і
+            товарах, орієнтовний час на сайті, пристрій, місто приблизно, звідки ви перейшли на
+            сайт. Ці дані збирає Google Analytics і не містять вашого імені, телефону чи email.
           </li>
         </ul>
         <p>
@@ -56,13 +61,14 @@ export default function PrivacyPage() {
           <li>ідентифікувати вас при вході в акаунт і перегляді замовлень;</li>
           <li>зв’язатися з вами щодо замовлення (уточнення, статус, повернення);</li>
           <li>зберегти кошик / обране на вашому пристрої;</li>
+          <li>зрозуміти, як користуються сайтом (популярні категорії, товари, джерела трафіку) — лише якщо ви прийняли аналітичні cookies;</li>
           <li>виконувати вимоги законодавства щодо обліку продажів.</li>
         </ul>
         <p>Ми не продаємо персональні дані третім особам і не використовуємо їх для розсилок без окремої згоди, якщо така функція з’явиться пізніше.</p>
       </LegalSection>
 
       <LegalSection title="4. Cookies та локальне зберігання">
-        <p>На сайті використовуються необхідні для роботи сервісу засоби:</p>
+        <p>На сайті використовуються такі засоби:</p>
         <ul className="list-disc space-y-1.5 pl-5">
           <li>
             <strong className="font-semibold text-obsidian">сесійний cookie</strong> — після входу за
@@ -77,18 +83,24 @@ export default function PrivacyPage() {
             після перевірки номера телефону для перегляду статусу;
           </li>
           <li>
-            <strong className="font-semibold text-obsidian">localStorage</strong> — кошик у браузері.
+            <strong className="font-semibold text-obsidian">localStorage</strong> — кошик у браузері;
+          </li>
+          <li>
+            <strong className="font-semibold text-obsidian">аналітичні cookies Google Analytics</strong>{" "}
+            — лише після натискання «Прийняти» в банері. Вони допомагають бачити відвідуваність,
+            джерела трафіку та які товари дивляться. Ви можете відхилити аналітику або змінити вибір
+            у підвалі сайту («Cookies»).
           </li>
         </ul>
         <p>
-          Ці засоби потрібні для надання послуги інтернет-магазину. Окремий банер зі згодою на
-          cookies ми не показуємо. Якщо ви очистите cookies / дані сайту, частина функцій (кошик,
-          гість, сесія) може скинутися.
+          Необхідні cookies потрібні для роботи магазину (кошик, сесія, гість). Якщо ви очистите
+          cookies / дані сайту, частина функцій може скинутися, а вибір щодо аналітики буде
+          запропоновано знову.
         </p>
       </LegalSection>
 
       <LegalSection title="5. Передача даних третім сторонам">
-        <p>Дані можуть передаватися лише в обсязі, потрібному для замовлення:</p>
+        <p>Дані можуть передаватися третім сторонам у такому обсязі:</p>
         <ul className="list-disc space-y-1.5 pl-5">
           <li>
             <strong className="font-semibold text-obsidian">Нова Пошта</strong> — для доставки
@@ -97,6 +109,21 @@ export default function PrivacyPage() {
           <li>
             <strong className="font-semibold text-obsidian">plata by mono / Monobank</strong> — для
             онлайн-оплати;
+          </li>
+          <li>
+            <strong className="font-semibold text-obsidian">Google LLC (Google Analytics)</strong> — якщо
+            ви прийняли аналітичні cookies: дані про перегляди сторінок, події в каталозі та
+            джерела трафіку. Google може обробляти їх на серверах за межами України відповідно до
+            своєї{" "}
+            <a
+              href="https://policies.google.com/privacy"
+              className="font-medium text-cobalt underline-offset-2 hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              політики конфіденційності
+            </a>
+            .
           </li>
           <li>постачальники хостингу, бази даних та інфраструктури сайту — для технічної роботи сервісу.</li>
         </ul>

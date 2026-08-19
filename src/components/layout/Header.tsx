@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useCart, cartCount } from "@/store/cart";
 import { Logo } from "./Logo";
 import { SearchIcon, UserIcon, HeartIcon, BagIcon } from "@/components/Icons";
+import { TrackedLink } from "@/components/analytics/TrackedLink";
 
 const NAV_LINKS = [
   { href: "/category/sale", label: "Розпродаж" },
@@ -42,9 +43,11 @@ export function Header() {
             {NAV_LINKS.map((link) => {
               const active = pathname === link.href;
               return (
-                <Link
+                <TrackedLink
                   key={link.href}
                   href={link.href}
+                  contentType="category"
+                  contentId={link.href.replace("/category/", "")}
                   className={`relative text-[15px] font-medium transition hover:text-cobalt ${
                     active ? "text-cobalt" : "text-obsidian"
                   }`}
@@ -53,7 +56,7 @@ export function Header() {
                   {active && (
                     <span className="absolute -bottom-2 left-0 h-1 w-1 rounded-full bg-cobalt" />
                   )}
-                </Link>
+                </TrackedLink>
               );
             })}
           </nav>

@@ -7,6 +7,12 @@ import { useCart, cartTotals } from "@/store/cart";
 import { formatPrice } from "@/lib/format";
 import { ordersEnabled } from "@/lib/orders-enabled";
 import { OrdersClosedNotice } from "@/components/shop/OrdersClosedNotice";
+import {
+  cartLineItem,
+  trackAddPaymentInfo,
+  trackAddShippingInfo,
+  trackBeginCheckout,
+} from "@/lib/ga";
 
 type City = { ref: string; name: string; cityRef: string };
 type Warehouse = { ref: string; description: string };
@@ -95,6 +101,29 @@ export default function CheckoutPage() {
     staleTime: 60_000,
   });
 
+  const beganCheckout = useRef(false);
+  const sentShipping = useRef(false);
+
+  useEffect(() => {
+    if (!mounted || beganCheckout.current || items.length === 0) return;
+    beganCheckout.current = true;
+    const gaItems = items.map(cartLineItem);
+    trackBeginCheckout(
+      gaItems,
+      items.reduce((sum, i) => sum + i.price * i.qty, 0)
+    );
+  }, [mounted, items]);
+
+  useEffect(() => {
+    if (!city || !warehouse || !quote || sentShipping.current || items.length === 0) return;
+    sentShipping.current = true;
+    trackAddShippingInfo(
+      items.map(cartLineItem),
+      cartTotals(items, quote.shipping).total,
+      city.name
+    );
+  }, [city, warehouse, quote, items]);
+
   if (!mounted) return <div className="container-content py-20" />;
 
   if (!ordersEnabled()) {
@@ -136,6 +165,10 @@ export default function CheckoutPage() {
     if (!canSubmit || !city || !warehouse) return;
     setSubmitting(true);
     setError("");
+    trackAddPaymentInfo(
+      items.map(cartLineItem),
+      cartTotals(items, quote?.shipping ?? 0).total
+    );
     try {
       const orderRes = await fetch("/api/orders", {
         method: "POST",

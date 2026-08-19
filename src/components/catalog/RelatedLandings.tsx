@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { trackSelectContent } from "@/lib/ga";
 
 export function RelatedLandings({
   items,
@@ -16,6 +19,7 @@ export function RelatedLandings({
           <li key={item.href}>
             <Link
               href={item.href}
+              onClick={() => trackSelectContent("category", item.href)}
               className="inline-flex rounded-lg border border-[#E0E0E0] bg-white px-3 py-1.5 text-[13px] font-medium text-obsidian transition hover:border-cobalt hover:text-cobalt"
             >
               {item.label}
