@@ -411,6 +411,7 @@ async function main() {
     { slug: "outerwear", name: "Верхній одяг", sortOrder: 10, girlOnly: false, unisex: false },
     { slug: "sportswear", name: "Спортивні костюми", sortOrder: 20, girlOnly: false, unisex: false },
     { slug: "suits", name: "Костюми", sortOrder: 25, girlOnly: false, unisex: false },
+    { slug: "sets", name: "Комплекти", sortOrder: 28, girlOnly: false, unisex: false },
     { slug: "tshirts", name: "Футболки", sortOrder: 30, girlOnly: false, unisex: false },
     { slug: "pants", name: "Штани", sortOrder: 40, girlOnly: false, unisex: false },
     { slug: "shorts", name: "Шорти", sortOrder: 45, girlOnly: false, unisex: false },

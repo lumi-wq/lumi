@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { ensureProductTypes } from "@/lib/ensure-product-types";
 import { ProductsManager } from "@/components/admin/ProductsManager";
 
 export default async function AdminProductsPage() {
+  await ensureProductTypes();
   const [categories, productTypes] = await Promise.all([
     prisma.category.findMany({ select: { id: true, name: true, slug: true } }),
     prisma.productType.findMany({

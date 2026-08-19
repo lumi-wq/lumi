@@ -57,6 +57,15 @@ const TYPE_SEO: Record<
       "Костюми для хлопчиків 6–16 років: святкові та повсякденні комплекти. Замовлення на сайті з доставкою по Україні.",
     allIntro: "Дитячі костюми 6–16 років. Купити онлайн в LUMI з доставкою Новою Поштою.",
   },
+  sets: {
+    slug: PRODUCT_TYPE_TO_CLUSTER.sets,
+    short: "Комплекти",
+    girlsIntro:
+      "Комплекти для дівчаток — футболка з лосінами або шортами в одному сеті. Зручно на кожен день, доставка Новою Поштою.",
+    boysIntro:
+      "Комплекти для хлопчиків 6–16 років: футболка зі шортами або штанами. Замовлення на сайті з доставкою по Україні.",
+    allIntro: "Дитячі комплекти 6–16 років. Купити онлайн в LUMI з доставкою Новою Поштою.",
+  },
   tshirts: {
     slug: PRODUCT_TYPE_TO_CLUSTER.tshirts,
     short: "Футболки",
@@ -161,6 +170,7 @@ const CLOTHING_TYPES = [
   "outerwear",
   "sportswear",
   "suits",
+  "sets",
   "tshirts",
   "pants",
   "shorts",
@@ -266,7 +276,7 @@ function ageLanding(parent: GenderParent, band: (typeof AGE_BANDS)[number]): Seo
 
 const SCHOOL_TYPES = ["tshirts", "pants", "dresses", "sportswear", "footwear"] as const;
 const WINTER_TYPES = ["outerwear", "hats"] as const;
-const SUMMER_TYPES = ["tshirts", "shorts", "dresses", "pants", "caps"] as const;
+const SUMMER_TYPES = ["tshirts", "shorts", "dresses", "pants", "caps", "sets"] as const;
 
 function filterTypesForGender(parent: GenderParent, types: readonly string[]): string[] {
   return types.filter((t) => typeAllowedFor(parent, t));
@@ -406,6 +416,7 @@ function buildLandings(): SeoLanding[] {
     rootTypeLanding("outerwear"),
     rootTypeLanding("sportswear"),
     rootTypeLanding("tshirts"),
+    rootTypeLanding("sets"),
     {
       parent: "root",
       slug: "shkilnyy-odyag",
