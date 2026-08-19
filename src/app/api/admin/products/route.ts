@@ -8,6 +8,7 @@ import {
   productColorsSchema,
 } from "@/lib/product-colors";
 import { expireFeaturedProducts } from "@/lib/featured";
+import { allocateProductSlug, prismaErrorResponse } from "@/lib/product-slug";
 
 export async function GET() {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Заборонено" }, { status: 403 });
@@ -94,42 +95,50 @@ export async function POST(req: Request) {
   const isFeatured = Boolean(data.isFeatured);
   const isSale = Boolean(data.isSale);
 
-  const product = await prisma.$transaction(async (tx) => {
-    const created = await tx.product.create({
-      data: {
-        ...data,
-        isFeatured,
-        isSale,
-        featuredAt: isFeatured ? new Date() : null,
-        images: previewImages,
-      },
-    });
-
-    for (let i = 0; i < colors.length; i++) {
-      const c = colors[i];
-      const colorRow = await tx.productColor.create({
+  try {
+    const slug = await allocateProductSlug(prisma, data.slug);
+    const product = await prisma.$transaction(async (tx) => {
+      const created = await tx.product.create({
         data: {
-          productId: created.id,
-          name: c.name,
-          colorHex: c.colorHex,
-          images: c.images,
-          sortOrder: i,
+          ...data,
+          slug,
+          isFeatured,
+          isSale,
+          featuredAt: isFeatured ? new Date() : null,
+          images: previewImages,
         },
       });
-      await tx.productVariant.createMany({
-        data: c.sizes.map((s) => ({
-          productId: created.id,
-          colorId: colorRow.id,
-          size: s.size,
-          color: c.name,
-          colorHex: c.colorHex,
-          stock: s.stock,
-        })),
-      });
-    }
 
-    return created;
-  });
+      for (let i = 0; i < colors.length; i++) {
+        const c = colors[i];
+        const colorRow = await tx.productColor.create({
+          data: {
+            productId: created.id,
+            name: c.name,
+            colorHex: c.colorHex,
+            images: c.images,
+            sortOrder: i,
+          },
+        });
+        await tx.productVariant.createMany({
+          data: c.sizes.map((s) => ({
+            productId: created.id,
+            colorId: colorRow.id,
+            size: s.size,
+            color: c.name,
+            colorHex: c.colorHex,
+            stock: s.stock,
+          })),
+        });
+      }
 
-  return NextResponse.json({ product }, { status: 201 });
+      return created;
+    });
+
+    return NextResponse.json({ product }, { status: 201 });
+  } catch (err) {
+    console.error("[admin/products POST]", err);
+    const { error, status } = prismaErrorResponse(err);
+    return NextResponse.json({ error }, { status });
+  }
 }
