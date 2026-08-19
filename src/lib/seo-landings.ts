@@ -48,6 +48,15 @@ const TYPE_SEO: Record<
     allIntro:
       "Дитячі спортивні костюми 6–16 років. Зручно для школи, спорту і прогулянок. Доставка Новою Поштою по Україні.",
   },
+  suits: {
+    slug: PRODUCT_TYPE_TO_CLUSTER.suits,
+    short: "Костюми",
+    girlsIntro:
+      "Костюми для дівчаток 6–16 років — на свято, у школу та на кожен день. Підбір за ростом, доставка Новою Поштою.",
+    boysIntro:
+      "Костюми для хлопчиків 6–16 років: святкові та повсякденні комплекти. Замовлення на сайті з доставкою по Україні.",
+    allIntro: "Дитячі костюми 6–16 років. Купити онлайн в LUMI з доставкою Новою Поштою.",
+  },
   tshirts: {
     slug: PRODUCT_TYPE_TO_CLUSTER.tshirts,
     short: "Футболки",
@@ -67,6 +76,15 @@ const TYPE_SEO: Record<
       "Штани для хлопчиків 6–16: зручна посадка для школи, двору і прогулянок. Доставка Новою Поштою по Україні.",
     allIntro:
       "Дитячі штани 6–16 років. Купуйте онлайн на lumi.kids — доставка по Україні, оплата карткою.",
+  },
+  shorts: {
+    slug: PRODUCT_TYPE_TO_CLUSTER.shorts,
+    short: "Шорти",
+    girlsIntro:
+      "Шорти для дівчаток 6–16 років — для літа, двору і спорту. Обирайте за ростом і замовляйте на сайті.",
+    boysIntro:
+      "Шорти для хлопчиків 6–16 років: зручні на літо, прогулянки та активний відпочинок. Доставка Новою Поштою.",
+    allIntro: "Дитячі шорти 6–16 років. Купити онлайн в LUMI з доставкою по Україні.",
   },
   dresses: {
     slug: PRODUCT_TYPE_TO_CLUSTER.dresses,
@@ -139,7 +157,16 @@ const AGE_BANDS = [
   },
 ] as const;
 
-const CLOTHING_TYPES = ["outerwear", "sportswear", "tshirts", "pants", "dresses", "footwear"] as const;
+const CLOTHING_TYPES = [
+  "outerwear",
+  "sportswear",
+  "suits",
+  "tshirts",
+  "pants",
+  "shorts",
+  "dresses",
+  "footwear",
+] as const;
 const GENDER_ACCESSORIES = ["hats", "caps", "bags"] as const;
 
 export const DEFAULT_FAQ: SeoFaq[] = [
@@ -239,7 +266,7 @@ function ageLanding(parent: GenderParent, band: (typeof AGE_BANDS)[number]): Seo
 
 const SCHOOL_TYPES = ["tshirts", "pants", "dresses", "sportswear", "footwear"] as const;
 const WINTER_TYPES = ["outerwear", "hats"] as const;
-const SUMMER_TYPES = ["tshirts", "dresses", "pants", "caps"] as const;
+const SUMMER_TYPES = ["tshirts", "shorts", "dresses", "pants", "caps"] as const;
 
 function filterTypesForGender(parent: GenderParent, types: readonly string[]): string[] {
   return types.filter((t) => typeAllowedFor(parent, t));

@@ -7,11 +7,6 @@ import { formatPrice } from "@/lib/format";
 import { normalizeHex } from "@/lib/color";
 import { DEFAULT_HEIGHT_SIZES, HEIGHT_SIZES, compareSizes } from "@/lib/sizes";
 import { ImageColorPicker } from "@/components/admin/ImageColorPicker";
-import {
-  pricingAdminHint,
-  toStorefrontCompareAt,
-  toStorefrontPrice,
-} from "@/lib/storefront-price";
 
 type Category = { id: string; name: string; slug?: string };
 type ProductTypeOption = {
@@ -35,8 +30,6 @@ type AdminProduct = {
   name: string;
   slug: string;
   description: string;
-  basePrice: number;
-  compareAtBasePrice: number | null;
   price: number;
   compareAtPrice: number | null;
   images: string[];
@@ -66,8 +59,8 @@ type FormState = {
   name: string;
   slug?: string;
   description: string;
-  basePrice: string;
-  compareAtBasePrice: string;
+  price: string;
+  compareAtPrice: string;
   categoryId: string;
   productTypeId: string;
   gender: "BOY" | "GIRL";
@@ -90,8 +83,8 @@ function newColor(partial?: Partial<FormColor>): FormColor {
 const EMPTY: FormState = {
   name: "",
   description: "",
-  basePrice: "",
-  compareAtBasePrice: "",
+  price: "",
+  compareAtPrice: "",
   categoryId: "",
   productTypeId: "",
   gender: "BOY",
@@ -117,13 +110,13 @@ function slugify(value: string): string {
 }
 
 function toPayload(form: FormState) {
-  const compareAtBase = form.compareAtBasePrice.trim();
+  const compareAt = form.compareAtPrice.trim();
   return {
     name: form.name,
     slug: form.slug || slugify(form.name) || `product-${Date.now()}`,
     description: form.description,
-    basePrice: Number(form.basePrice),
-    compareAtBasePrice: compareAtBase ? Number(compareAtBase) : null,
+    price: Number(form.price),
+    compareAtPrice: compareAt ? Number(compareAt) : null,
     categoryId: form.categoryId,
     productTypeId: form.productTypeId,
     gender: form.gender,
@@ -165,7 +158,7 @@ export function ProductsManager({
     : undefined;
   const typeIsUnisex = Boolean(selectedType?.unisex);
 
-  const { data, isLoading } = useQuery<{ products: AdminProduct[]; pricingHint?: string }>({
+  const { data, isLoading } = useQuery<{ products: AdminProduct[] }>({
     queryKey: ["admin-products"],
     queryFn: async () => (await fetch("/api/admin/products")).json(),
   });
@@ -254,13 +247,8 @@ export function ProductsManager({
       name: p.name,
       slug: p.slug,
       description: p.description,
-      basePrice: String(p.basePrice ?? p.price),
-      compareAtBasePrice:
-        p.compareAtBasePrice != null
-          ? String(p.compareAtBasePrice)
-          : p.compareAtPrice != null
-            ? String(p.compareAtPrice)
-            : "",
+      price: String(p.price),
+      compareAtPrice: p.compareAtPrice != null ? String(p.compareAtPrice) : "",
       categoryId: defaultCategoryId,
       productTypeId: p.productTypeId ?? "",
       gender: p.gender ?? "BOY",
@@ -396,62 +384,24 @@ export function ProductsManager({
           />
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-[12px] font-semibold text-obsidian/60">
-                Базова ціна, ₴
-              </label>
-              <input
-                required
-                type="number"
-                min={1}
-                value={form.basePrice}
-                onChange={(e) => setForm({ ...form, basePrice: e.target.value })}
-                placeholder="Без комісій і повернень"
-                className="input-base"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-[12px] font-semibold text-obsidian/60">
-                Стара базова ціна, ₴
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={form.compareAtBasePrice}
-                onChange={(e) => setForm({ ...form, compareAtBasePrice: e.target.value })}
-                placeholder="Опційно, для розпродажу"
-                className="input-base"
-              />
-            </div>
+            <input
+              required
+              type="number"
+              min={1}
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              placeholder="Поточна ціна, ₴"
+              className="input-base"
+            />
+            <input
+              type="number"
+              min={1}
+              value={form.compareAtPrice}
+              onChange={(e) => setForm({ ...form, compareAtPrice: e.target.value })}
+              placeholder="Стара ціна, ₴ (опційно)"
+              className="input-base"
+            />
           </div>
-          {(() => {
-            const base = Number(form.basePrice);
-            if (!Number.isFinite(base) || base < 1) return null;
-            const storefront = toStorefrontPrice(base);
-            const compareBase = form.compareAtBasePrice.trim()
-              ? Number(form.compareAtBasePrice)
-              : null;
-            const storefrontCompare =
-              compareBase != null && Number.isFinite(compareBase) && compareBase > base
-                ? toStorefrontCompareAt(compareBase)
-                : null;
-            return (
-              <div className="rounded-xl border border-cobalt/20 bg-cobalt/5 px-4 py-3 text-sm">
-                <p>
-                  На сайті буде:{" "}
-                  <span className="font-bold text-cobalt">{formatPrice(storefront)}</span>
-                  {storefrontCompare != null && (
-                    <span className="ml-2 text-obsidian/45 line-through">
-                      {formatPrice(storefrontCompare)}
-                    </span>
-                  )}
-                </p>
-                <p className="mt-1 text-[12px] text-obsidian/50">
-                  {data?.pricingHint ?? pricingAdminHint()}
-                </p>
-              </div>
-            );
-          })()}
 
           <div className="grid gap-4 sm:grid-cols-2">
             {!typeIsUnisex && (
@@ -762,17 +712,12 @@ export function ProductsManager({
                     {p.gender === "GIRL" ? "Дівчинка" : "Хлопчик"}
                   </td>
                   <td className="px-5 py-3.5">
-                    <div>
-                      <span className="font-semibold text-cobalt">{formatPrice(p.price)}</span>
-                      {p.compareAtPrice != null && p.compareAtPrice > p.price && (
-                        <span className="ml-2 text-obsidian/40 line-through">
-                          {formatPrice(p.compareAtPrice)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-0.5 text-[11px] text-obsidian/45">
-                      база {formatPrice(p.basePrice ?? p.price)}
-                    </p>
+                    {formatPrice(p.price)}
+                    {p.compareAtPrice != null && p.compareAtPrice > p.price && (
+                      <span className="ml-2 text-obsidian/40 line-through">
+                        {formatPrice(p.compareAtPrice)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex gap-1.5">

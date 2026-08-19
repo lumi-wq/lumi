@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { resolveStorefrontPrices } from "../src/lib/storefront-price";
 
 const prisma = new PrismaClient();
 
@@ -411,8 +410,10 @@ async function main() {
   const typeDefs = [
     { slug: "outerwear", name: "Верхній одяг", sortOrder: 10, girlOnly: false, unisex: false },
     { slug: "sportswear", name: "Спортивні костюми", sortOrder: 20, girlOnly: false, unisex: false },
+    { slug: "suits", name: "Костюми", sortOrder: 25, girlOnly: false, unisex: false },
     { slug: "tshirts", name: "Футболки", sortOrder: 30, girlOnly: false, unisex: false },
     { slug: "pants", name: "Штани", sortOrder: 40, girlOnly: false, unisex: false },
+    { slug: "shorts", name: "Шорти", sortOrder: 45, girlOnly: false, unisex: false },
     { slug: "dresses", name: "Сукні", sortOrder: 50, girlOnly: true, unisex: false },
     { slug: "footwear", name: "Взуття", sortOrder: 60, girlOnly: false, unisex: false },
     { slug: "hats", name: "Шапки", sortOrder: 70, girlOnly: false, unisex: false },
@@ -444,16 +445,13 @@ async function main() {
             ];
       const typeSlug = p.typeSlug ?? defaultType;
       const images = imagesFor(offset + i);
-      const prices = resolveStorefrontPrices({
-        basePrice: p.price,
-        compareAtBasePrice: p.compareAtPrice ?? null,
-      });
       const product = await prisma.product.create({
         data: {
           slug: p.slug,
           name: p.name,
           description: p.description,
-          ...prices,
+          price: p.price,
+          compareAtPrice: p.compareAtPrice ?? null,
           images,
           tag: p.tag ?? null,
           tagStyle: p.tagStyle ?? "cobalt",

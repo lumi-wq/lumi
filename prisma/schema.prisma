@@ -65,13 +65,7 @@ model Product {
   slug           String           @unique
   name           String
   description    String
-  /// Базова ціна магазину (без амортизації комісій MonoPay / повернень)
-  basePrice      Int              @default(0)
-  /// Стара базова ціна для розпродажу (опційно)
-  compareAtBasePrice Int?
-  /// Вітринна ціна для покупця (розраховується з basePrice)
   price          Int
-  /// Вітринна «стара» ціна (з compareAtBasePrice)
   compareAtPrice Int?
   /// Превʼю для карток (зазвичай фото першого кольору)
   images         String[]
