@@ -3,8 +3,10 @@
 const TYPE_CLUSTER = {
   outerwear: "verkhniy-odyag",
   sportswear: "sportyvni-kostyumy",
+  suits: "kostyumy",
   tshirts: "futbolky",
   pants: "shtany",
+  shorts: "shorty",
   dresses: "sukni",
   footwear: "vzuttya",
   hats: "shapky",
@@ -14,8 +16,31 @@ const TYPE_CLUSTER = {
 };
 
 const TYPE_REDIRECT_PARENTS = {
-  girls: ["outerwear", "sportswear", "tshirts", "pants", "dresses", "footwear", "hats", "caps", "bags"],
-  boys: ["outerwear", "sportswear", "tshirts", "pants", "footwear", "hats", "caps", "bags"],
+  girls: [
+    "outerwear",
+    "sportswear",
+    "suits",
+    "tshirts",
+    "pants",
+    "shorts",
+    "dresses",
+    "footwear",
+    "hats",
+    "caps",
+    "bags",
+  ],
+  boys: [
+    "outerwear",
+    "sportswear",
+    "suits",
+    "tshirts",
+    "pants",
+    "shorts",
+    "footwear",
+    "hats",
+    "caps",
+    "bags",
+  ],
   accessories: ["hats", "caps", "bags", "glasses"],
 };
 

@@ -2,8 +2,10 @@
 export const PRODUCT_TYPE_DEFS = [
   { slug: "outerwear", name: "Верхній одяг", sortOrder: 10, girlOnly: false, unisex: false },
   { slug: "sportswear", name: "Спортивні костюми", sortOrder: 20, girlOnly: false, unisex: false },
+  { slug: "suits", name: "Костюми", sortOrder: 25, girlOnly: false, unisex: false },
   { slug: "tshirts", name: "Футболки", sortOrder: 30, girlOnly: false, unisex: false },
   { slug: "pants", name: "Штани", sortOrder: 40, girlOnly: false, unisex: false },
+  { slug: "shorts", name: "Шорти", sortOrder: 45, girlOnly: false, unisex: false },
   { slug: "dresses", name: "Сукні", sortOrder: 50, girlOnly: true, unisex: false },
   { slug: "footwear", name: "Взуття", sortOrder: 60, girlOnly: false, unisex: false },
   { slug: "hats", name: "Шапки", sortOrder: 70, girlOnly: false, unisex: false },
