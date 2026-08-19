@@ -193,6 +193,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
               materials: product.materials,
               description: product.description,
               fallbackImage: product.images[0] ?? "",
+              category: product.productType?.name ?? product.category?.name ?? null,
             }}
             colors={colors}
             variants={product.variants}
@@ -209,7 +210,12 @@ export default async function ProductPage({ params }: { params: { slug: string }
             Вам також сподобається
           </h2>
           <div className="mt-8">
-            <ProductGrid products={related.map(toCardData)} columns={4} />
+            <ProductGrid
+              products={related.map(toCardData)}
+              columns={4}
+              listId="related"
+              listName="Вам також сподобається"
+            />
           </div>
         </div>
       </section>

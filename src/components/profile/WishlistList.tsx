@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ProductCardData } from "@/lib/types";
 import { ProductCard } from "@/components/product/ProductCard";
 import { HeartIcon } from "@/components/Icons";
+import { productItem, trackRemoveFromWishlist, trackViewItemList } from "@/lib/ga";
 
 export type WishlistEntry = {
   id: string;
@@ -20,7 +21,32 @@ export function WishlistList({
 }) {
   const [items, setItems] = useState(initial);
 
+  useEffect(() => {
+    if (initial.length === 0) return;
+    trackViewItemList(
+      initial.map((item, index) =>
+        productItem({
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          index,
+          listId: "wishlist",
+          listName: "Обране",
+        })
+      ),
+      "wishlist",
+      "Обране"
+    );
+  }, [initial]);
+
   const remove = async (item: WishlistEntry) => {
+    trackRemoveFromWishlist(
+      productItem({
+        id: item.product.id,
+        name: item.product.name,
+        price: item.product.price,
+      })
+    );
     setItems((prev) => prev.filter((i) => i.id !== item.id));
     await fetch("/api/wishlist", {
       method: "POST",
@@ -49,7 +75,11 @@ export function WishlistList({
           >
             <HeartIcon className="h-5 w-5" filled />
           </button>
-          <ProductCard product={item.product} />
+          <ProductCard
+            product={item.product}
+            listId="wishlist"
+            listName="Обране"
+          />
         </div>
       ))}
     </div>

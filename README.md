@@ -100,6 +100,23 @@ NEXT_PUBLIC_ORDERS_ENABLED=true
 
 Після зміни — redeploy.
 
+## Google Analytics 4
+
+E-commerce аналітика (перегляди товарів, кошик, checkout, джерела трафіку). Скрипти не вантажаться, доки немає ID.
+
+1. Створіть ресурс GA4: [analytics.google.com](https://analytics.google.com/) → Admin → Create property (веб, URL `https://lumi.kids`)
+2. Скопіюйте Measurement ID (`G-XXXXXXXX`)
+3. У Vercel (Production env) і локальному `.env`:
+
+```
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXX
+```
+
+4. Redeploy. У DebugView (локально `npm run dev`) події з’являються з `debug_mode`.
+5. На сайті з’явиться банер згоди; без «Прийняти» Google не ставить аналітичні cookies (Consent Mode).
+
+Адмін-панель (`/admin`) не трекається.
+
 ## Нова Пошта (Україна)
 
 Використовується **український** API: `https://api.novaposhta.ua/v2.0/json/`.

@@ -92,7 +92,11 @@ export function CatalogView({
           <div className="flex-1">
             {products.length > 0 ? (
               <>
-                <ProductGrid products={products.map(toCardData)} />
+                <ProductGrid
+                  products={products.map(toCardData)}
+                  listId={collection.path}
+                  listName={collection.name}
+                />
                 <Pagination page={page} totalPages={totalPages} />
               </>
             ) : (

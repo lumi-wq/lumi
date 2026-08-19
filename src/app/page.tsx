@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { toCardData } from "@/lib/types";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { ArrowRightIcon } from "@/components/Icons";
+import { TrackedLink } from "@/components/analytics/TrackedLink";
 import { canonicalMetadata } from "@/lib/seo";
 import { activeFeaturedWhere, expireFeaturedProducts } from "@/lib/featured";
 import { PRODUCT_TYPE_TO_CLUSTER, typeClusterPath } from "@/lib/seo-landing-paths";
@@ -90,12 +91,12 @@ export default async function HomePage() {
               знижки на сезонні залишки.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <Link href="/category/sale" className="btn-primary">
+              <TrackedLink href="/category/sale" contentType="category" contentId="sale" className="btn-primary">
                 Дивитись розпродаж
-              </Link>
-              <Link href="/category/new" className="btn-secondary">
+              </TrackedLink>
+              <TrackedLink href="/category/new" contentType="category" contentId="new" className="btn-secondary">
                 Новинки
-              </Link>
+              </TrackedLink>
             </div>
           </div>
           <div className="relative h-56 w-full overflow-hidden rounded-card md:h-72 md:max-w-md lg:h-80 lg:max-w-lg">
@@ -127,7 +128,12 @@ export default async function HomePage() {
               </Link>
             </div>
             <div className="mt-10">
-              <ProductGrid products={novelties.map(toCardData)} columns={4} />
+              <ProductGrid
+                products={novelties.map(toCardData)}
+                columns={4}
+                listId="home_new"
+                listName="Новинки"
+              />
             </div>
           </div>
         </section>
@@ -149,7 +155,12 @@ export default async function HomePage() {
               </Link>
             </div>
             <div className="mt-10">
-              <ProductGrid products={sale.map(toCardData)} columns={4} />
+              <ProductGrid
+                products={sale.map(toCardData)}
+                columns={4}
+                listId="home_sale"
+                listName="Розпродаж"
+              />
             </div>
           </div>
         </section>
@@ -163,18 +174,22 @@ export default async function HomePage() {
                 <p className="text-sm font-semibold uppercase tracking-widest text-cobalt">Обирай стиль</p>
                 <h2 className="mt-2 font-display text-3xl font-black md:text-[38px]">Популярні категорії</h2>
               </div>
-              <Link
+              <TrackedLink
                 href="/category/girls"
+                contentType="category"
+                contentId="girls"
                 className="hidden text-[15px] font-semibold text-cobalt underline-offset-4 hover:underline sm:block"
               >
                 Дивитись все
-              </Link>
+              </TrackedLink>
             </div>
             <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {categoryTiles.map((tile) => (
-                <Link
+                <TrackedLink
                   key={tile.href}
                   href={tile.href}
+                  contentType="category"
+                  contentId={tile.label}
                   className="group relative h-[400px] overflow-hidden rounded-card"
                 >
                   <Image
@@ -188,7 +203,7 @@ export default async function HomePage() {
                     <span className="text-lg font-bold">{tile.label}</span>
                     <ArrowRightIcon className="h-[18px] w-[18px] text-cobalt transition group-hover:translate-x-1" />
                   </span>
-                </Link>
+                </TrackedLink>
               ))}
             </div>
           </div>

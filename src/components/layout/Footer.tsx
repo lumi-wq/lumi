@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
+import { CookieSettingsButton } from "@/components/analytics/CookieSettingsButton";
 
 const COLUMNS = [
   {
@@ -68,6 +69,7 @@ export function Footer() {
             <Link href="/terms" className="transition hover:text-white">
               Умови
             </Link>
+            <CookieSettingsButton />
           </div>
         </div>
       </div>

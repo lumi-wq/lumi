@@ -9,6 +9,14 @@ import { SizeChartModal } from "@/components/product/SizeChartModal";
 import { Gallery } from "@/components/product/Gallery";
 import { Tag } from "@/components/product/Tag";
 import { ProductPrice } from "@/components/product/ProductPrice";
+import {
+  productItem,
+  trackAddToCart,
+  trackAddToWishlist,
+  trackRemoveFromWishlist,
+  trackViewItem,
+  variantLabel,
+} from "@/lib/ga";
 
 export type ProductColorView = {
   id: string;
@@ -40,6 +48,7 @@ type Props = {
     materials: string | null;
     description: string;
     fallbackImage: string;
+    category?: string | null;
   };
   colors: ProductColorView[];
   variants: Variant[];
@@ -83,6 +92,17 @@ export function ProductDetailClient({ product, colors, variants }: Props) {
   useEffect(() => {
     setSize(null);
   }, [colorId]);
+
+  useEffect(() => {
+    trackViewItem(
+      productItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category: product.category,
+      })
+    );
+  }, [product.id, product.name, product.price, product.category]);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,6 +154,15 @@ export function ProductDetailClient({ product, colors, variants }: Props) {
       size: selectedVariant.size,
       price: product.price,
     });
+    trackAddToCart(
+      productItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category: product.category,
+        variant: variantLabel(selectedVariant.size, selectedColor?.name ?? selectedVariant.color),
+      })
+    );
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   };
@@ -149,6 +178,14 @@ export function ProductDetailClient({ product, colors, variants }: Props) {
       });
       if (res.ok) {
         const json = await res.json();
+        const wishItem = productItem({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          category: product.category,
+        });
+        if (json.added) trackAddToWishlist(wishItem);
+        else trackRemoveFromWishlist(wishItem);
         setWishState(json.added ? "saved" : "idle");
       }
     } finally {

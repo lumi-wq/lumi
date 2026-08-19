@@ -3,6 +3,7 @@ import { Gabarito, Inter, Manrope } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { GaScripts } from "@/components/analytics/GaScripts";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Providers } from "@/components/Providers";
@@ -105,6 +106,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="min-h-[60vh]">{children}</main>
           <Footer />
         </Providers>
+        <GaScripts />
         <Analytics />
         <SpeedInsights />
       </body>

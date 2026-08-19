@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { typeClusterPath } from "@/lib/seo-landing-paths";
+import { trackFilter } from "@/lib/ga";
 
 export const GENDER_OPTIONS = [
   { value: "BOY", label: "Хлопчики" },
@@ -86,6 +87,7 @@ export function FiltersPanel({
 
   const setGender = (value: string | null) => {
     if (lockedGender || hideGender) return;
+    if (value) trackFilter("gender", value);
     update((p) => {
       if (!value) p.delete("gender");
       else p.set("gender", value);
@@ -96,6 +98,7 @@ export function FiltersPanel({
 
   const setType = (value: string | null) => {
     if (lockedProductType) return;
+    if (value) trackFilter("category", value);
     if (typeNavParent) {
       router.push(typeClusterPath(typeNavParent, value));
       return;
@@ -212,7 +215,10 @@ export function FiltersPanel({
                 return (
                   <button
                     key={size}
-                    onClick={() => toggleCsv("sizes", size, selectedSizes)}
+                    onClick={() => {
+                      if (!active) trackFilter("size", size);
+                      toggleCsv("sizes", size, selectedSizes);
+                    }}
                     className={`rounded-lg border px-3 py-2 text-[13px] font-medium transition ${
                       active
                         ? "border-cobalt bg-cobalt/5 font-semibold text-cobalt"

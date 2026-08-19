@@ -3,13 +3,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCart, cartTotals, cartCount } from "@/store/cart";
 import { formatPrice, formatDate, productCountLabel } from "@/lib/format";
 import { ORDER_STATUS_LABELS } from "@/lib/order-status";
 import { TrashIcon, MinusIcon, PlusIcon } from "@/components/Icons";
 import { ordersEnabled } from "@/lib/orders-enabled";
 import { OrdersClosedNotice } from "@/components/shop/OrdersClosedNotice";
+import {
+  cartLineItem,
+  trackAddToCart,
+  trackRemoveFromCart,
+  trackViewCart,
+} from "@/lib/ga";
 
 type RecentOrder = {
   id: string;
@@ -82,6 +88,16 @@ export default function CartPage() {
   const [recent, setRecent] = useState<RecentOrder[]>([]);
 
   useEffect(() => setMounted(true), []);
+  const viewedCart = useRef(false);
+  useEffect(() => {
+    if (!mounted || viewedCart.current || items.length === 0) return;
+    viewedCart.current = true;
+    const gaItems = items.map(cartLineItem);
+    trackViewCart(
+      gaItems,
+      gaItems.reduce((sum, i) => sum + (i.price ?? 0) * (i.quantity ?? 1), 0)
+    );
+  }, [mounted, items]);
   useEffect(() => {
     let cancelled = false;
     fetch("/api/orders/recent")
@@ -155,18 +171,33 @@ export default function CartPage() {
                   {line.size}
                 </p>
                 <button
-                  onClick={() => remove(line.variantId)}
+                  onClick={() => {
+                    trackRemoveFromCart(cartLineItem(line));
+                    remove(line.variantId);
+                  }}
                   className="mt-2 flex items-center gap-1.5 text-[13px] font-semibold text-cobalt hover:underline"
                 >
                   <TrashIcon className="h-3.5 w-3.5" /> Видалити
                 </button>
               </div>
               <div className="flex items-center gap-2 rounded-lg border border-[#E0E0E0] px-2 py-1.5">
-                <button onClick={() => setQty(line.variantId, line.qty - 1)} aria-label="Менше">
+                <button
+                  onClick={() => {
+                    trackRemoveFromCart(cartLineItem({ ...line, qty: 1 }));
+                    setQty(line.variantId, line.qty - 1);
+                  }}
+                  aria-label="Менше"
+                >
                   <MinusIcon className="h-3.5 w-3.5" />
                 </button>
                 <span className="w-6 text-center text-sm font-semibold">{line.qty}</span>
-                <button onClick={() => setQty(line.variantId, line.qty + 1)} aria-label="Більше">
+                <button
+                  onClick={() => {
+                    trackAddToCart(cartLineItem({ ...line, qty: 1 }));
+                    setQty(line.variantId, line.qty + 1);
+                  }}
+                  aria-label="Більше"
+                >
                   <PlusIcon className="h-3.5 w-3.5" />
                 </button>
               </div>

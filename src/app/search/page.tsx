@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { toCardData } from "@/lib/types";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { SearchBanner } from "@/components/catalog/SearchBanner";
+import { SearchTracker } from "@/components/analytics/SearchTracker";
 import { NOINDEX_FOLLOW } from "@/lib/seo";
 
 export const metadata = { title: "Пошук", ...NOINDEX_FOLLOW };
@@ -45,6 +46,7 @@ export default async function SearchPage({
             Результати пошуку
           </p>
           <SearchBanner initialQuery={q} />
+          <SearchTracker query={q} />
           {q && (
             <h1 className="mt-6 font-display text-2xl font-black md:text-[28px]">
               Знайдено {resultsLabel(products.length)} за запитом «{q}»
@@ -55,7 +57,13 @@ export default async function SearchPage({
 
       <section className="py-12">
         <div className="container-content">
-          {products.length > 0 && <ProductGrid products={products.map(toCardData)} />}
+          {products.length > 0 && (
+            <ProductGrid
+              products={products.map(toCardData)}
+              listId="search"
+              listName="Пошук"
+            />
+          )}
 
           {(products.length === 0 || !q) && (
             <div className="mx-auto mt-4 max-w-3xl rounded-card bg-white p-12 text-center">
