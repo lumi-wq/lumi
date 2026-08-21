@@ -1,9 +1,16 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import {
+  BASE_COLLECTIONS,
+  collectionFromLanding,
+  productFitsCollection,
+  type CatalogCollection,
+  type CatalogFitProduct,
+} from "@/lib/catalog";
 import { SEO_LANDINGS } from "@/lib/seo-landings";
 import { getSiteUrl } from "@/lib/site";
 
-const VIRTUAL_CATEGORY_SLUGS = ["sale", "new", "girls", "boys", "accessories"] as const;
+export const revalidate = 3600;
 
 function staticEntries(base: string): MetadataRoute.Sitemap {
   return [
@@ -11,17 +18,26 @@ function staticEntries(base: string): MetadataRoute.Sitemap {
     { url: `${base}/size-guide`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${base}/privacy`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${base}/terms`, changeFrequency: "yearly", priority: 0.3 },
-    ...VIRTUAL_CATEGORY_SLUGS.map((slug) => ({
-      url: `${base}/category/${slug}`,
-      changeFrequency: "daily" as const,
-      priority: 0.9,
-    })),
-    ...SEO_LANDINGS.map((l) => ({
-      url: `${base}${l.path}`,
-      changeFrequency: "weekly" as const,
-      priority: l.parent === "root" ? 0.85 : 0.8,
-    })),
   ];
+}
+
+function collectionMeta(collection: CatalogCollection): Pick<
+  MetadataRoute.Sitemap[number],
+  "changeFrequency" | "priority"
+> {
+  if (BASE_COLLECTIONS[collection.slug]?.path === collection.path) {
+    return { changeFrequency: "daily", priority: 0.9 };
+  }
+  const landing = SEO_LANDINGS.find((l) => l.path === collection.path);
+  return {
+    changeFrequency: "weekly",
+    priority: landing?.parent === "root" ? 0.85 : 0.8,
+  };
+}
+
+function newestDate(dates: Date[]): Date | undefined {
+  if (dates.length === 0) return undefined;
+  return dates.reduce((latest, d) => (d > latest ? d : latest));
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -29,21 +45,56 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticUrls = staticEntries(base);
 
   try {
-    const [products, dbCategories] = await Promise.all([
-      prisma.product.findMany({ select: { slug: true, createdAt: true } }),
-      prisma.category.findMany({ select: { slug: true } }),
-    ]);
+    const products = await prisma.product.findMany({
+      select: {
+        slug: true,
+        createdAt: true,
+        gender: true,
+        isSale: true,
+        isFeatured: true,
+        featuredAt: true,
+        categoryId: true,
+        productType: { select: { slug: true, unisex: true } },
+        variants: { select: { size: true } },
+      },
+    });
+
+    const fitProducts: (CatalogFitProduct & { slug: string; createdAt: Date })[] = products.map(
+      (p) => ({
+        slug: p.slug,
+        createdAt: p.createdAt,
+        gender: p.gender,
+        isSale: p.isSale,
+        isFeatured: p.isFeatured,
+        featuredAt: p.featuredAt,
+        categoryId: p.categoryId,
+        productTypeSlug: p.productType?.slug ?? null,
+        productTypeUnisex: Boolean(p.productType?.unisex),
+        sizes: p.variants.map((v) => v.size),
+      })
+    );
+
+    const collections: CatalogCollection[] = [
+      ...Object.values(BASE_COLLECTIONS),
+      ...SEO_LANDINGS.map(collectionFromLanding),
+    ];
+
+    const collectionUrls = collections.flatMap((collection) => {
+      const matching = fitProducts.filter((p) => productFitsCollection(p, collection));
+      if (matching.length === 0) return [];
+      return [
+        {
+          url: `${base}${collection.path}`,
+          lastModified: newestDate(matching.map((p) => p.createdAt)),
+          ...collectionMeta(collection),
+        },
+      ];
+    });
 
     return [
       ...staticUrls,
-      ...dbCategories
-        .filter((c) => !(VIRTUAL_CATEGORY_SLUGS as readonly string[]).includes(c.slug))
-        .map((c) => ({
-          url: `${base}/category/${c.slug}`,
-          changeFrequency: "weekly" as const,
-          priority: 0.5,
-        })),
-      ...products.map((p) => ({
+      ...collectionUrls,
+      ...fitProducts.map((p) => ({
         url: `${base}/product/${p.slug}`,
         lastModified: p.createdAt,
         changeFrequency: "weekly" as const,

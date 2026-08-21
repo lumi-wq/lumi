@@ -8,15 +8,14 @@ export const INDEX_FIRST_PATHS = [
   "/",
   "/category/girls",
   "/category/boys",
-  "/category/girls/verkhniy-odyag",
-  "/category/boys/verkhniy-odyag",
+  "/category/sale",
+  "/category/new",
   "/category/girls/futbolky",
-  "/category/boys/futbolky",
+  "/category/boys/verkhniy-odyag",
   "/category/shkilnyy-odyag",
   "/category/pidlitkovyy-odyag",
   "/category/zymovyy-odyag",
   "/size-guide",
-  "/category/sale",
 ] as const;
 
 export function indexFirstUrls(origin = PRODUCTION_ORIGIN): string[] {

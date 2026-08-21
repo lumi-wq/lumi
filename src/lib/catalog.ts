@@ -1,9 +1,10 @@
+import { cache } from "react";
 import type { Prisma } from "@prisma/client";
 import { ProductGender } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { compareSizes } from "@/lib/sizes";
 import { ACCESSORY_TYPE_SLUGS } from "@/lib/product-types";
-import { activeFeaturedWhere, expireFeaturedProducts } from "@/lib/featured";
+import { activeFeaturedWhere, expireFeaturedProducts, isFeaturedActive } from "@/lib/featured";
 import { DEFAULT_FAQ, type SeoFaq, type SeoLanding } from "@/lib/seo-landings";
 import type { ProductWithVariants } from "@/lib/types";
 
@@ -131,6 +132,48 @@ export function collectionFromLanding(landing: SeoLanding): CatalogCollection {
   };
 }
 
+/** Мінімальні поля товару, щоб вирішити, чи колекція не порожня (sitemap / noindex). */
+export type CatalogFitProduct = {
+  gender: ProductGender;
+  isSale: boolean;
+  isFeatured: boolean;
+  featuredAt: Date | string | null;
+  categoryId?: string;
+  productTypeSlug: string | null;
+  productTypeUnisex: boolean;
+  sizes: readonly string[];
+};
+
+function isUnisexType(slug: string | null, unisex: boolean): boolean {
+  return unisex || slug === "glasses";
+}
+
+/** Чи потрапляє товар у колекцію без query-фільтрів (як у sitemap). */
+export function productFitsCollection(
+  product: CatalogFitProduct,
+  collection: CatalogCollection
+): boolean {
+  if (collection.categoryId && product.categoryId !== collection.categoryId) return false;
+  if (collection.isNew && !isFeaturedActive(product)) return false;
+  if (collection.isSale && !product.isSale) return false;
+
+  const typeSlug = product.productTypeSlug;
+  if (collection.productTypeSlug) {
+    if (typeSlug !== collection.productTypeSlug) return false;
+  } else if (collection.productTypeSlugs?.length) {
+    if (!typeSlug || !collection.productTypeSlugs.includes(typeSlug)) return false;
+  }
+
+  const typeUnisex = isUnisexType(typeSlug, product.productTypeUnisex);
+  if (collection.gender && !typeUnisex && product.gender !== collection.gender) return false;
+
+  if (collection.sizes?.length) {
+    if (!product.sizes.some((size) => collection.sizes!.includes(size))) return false;
+  }
+
+  return true;
+}
+
 export function parseGender(value?: string): ProductGender | undefined {
   if (value === "BOY" || value === "GIRL") return value;
   return undefined;
@@ -163,7 +206,26 @@ export type CatalogListing = {
   selectedIsUnisex: boolean;
 };
 
-export async function loadCatalogListing(
+export function loadCatalogListing(
+  collection: CatalogCollection,
+  searchParams: CatalogSearchParams
+): Promise<CatalogListing> {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (value) query.set(key, value);
+  }
+  return loadCatalogListingCached(`${collection.path}?${query}`, collection, searchParams);
+}
+
+const loadCatalogListingCached = cache(
+  async (
+    _key: string,
+    collection: CatalogCollection,
+    searchParams: CatalogSearchParams
+  ): Promise<CatalogListing> => loadCatalogListingUncached(collection, searchParams)
+);
+
+async function loadCatalogListingUncached(
   collection: CatalogCollection,
   searchParams: CatalogSearchParams
 ): Promise<CatalogListing> {
@@ -310,4 +372,15 @@ export function hasIndexableFilters(
   if (!collection.productTypeSlug && !collection.productTypeSlugs && searchParams.type) return true;
   if (searchParams.sizes) return true;
   return false;
+}
+
+/** Порожні лендінги й службові DB-категорії (kidswear) не віддаємо в індекс. */
+export function shouldNoindexCatalog(
+  collection: CatalogCollection,
+  listingTotal: number,
+  searchParams: CatalogSearchParams
+): boolean {
+  if (collection.categoryId) return true;
+  if (listingTotal === 0) return true;
+  return hasIndexableFilters(collection, searchParams);
 }

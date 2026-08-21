@@ -5,8 +5,8 @@ import { CatalogView } from "@/components/catalog/CatalogView";
 import {
   BASE_COLLECTIONS,
   collectionFromLanding,
-  hasIndexableFilters,
   loadCatalogListing,
+  shouldNoindexCatalog,
   type CatalogCollection,
   type CatalogSearchParams,
 } from "@/lib/catalog";
@@ -51,12 +51,12 @@ export async function generateMetadata({
   if (!collection) return {};
   const page = Math.max(1, Number(searchParams.page ?? 1) || 1);
   const canonicalPath = page > 1 ? `${collection.path}?page=${page}` : collection.path;
-  const filtered = hasIndexableFilters(collection, searchParams);
+  const listing = await loadCatalogListing(collection, searchParams);
   return {
     title: listingTitle(collection.h1),
     description: collection.description,
     ...canonicalMetadata(canonicalPath),
-    ...(filtered ? NOINDEX_FOLLOW : {}),
+    ...(shouldNoindexCatalog(collection, listing.total, searchParams) ? NOINDEX_FOLLOW : {}),
     openGraph: {
       ...canonicalMetadata(canonicalPath).openGraph,
       title: `${collection.h1} | LUMI`,

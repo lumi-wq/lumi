@@ -4,12 +4,12 @@ import { CatalogView } from "@/components/catalog/CatalogView";
 import {
   BASE_COLLECTIONS,
   collectionFromLanding,
-  hasIndexableFilters,
   loadCatalogListing,
+  shouldNoindexCatalog,
   type CatalogSearchParams,
 } from "@/lib/catalog";
 import { getClusterLanding, listClusterParams } from "@/lib/seo-landings";
-import { canonicalMetadata, listingTitle, NOINDEX_FOLLOW } from "@/lib/seo";
+import { canonicalMetadata, NOINDEX_FOLLOW } from "@/lib/seo";
 
 export const revalidate = 60;
 
@@ -29,12 +29,12 @@ export async function generateMetadata({
   const page = Math.max(1, Number(searchParams.page ?? 1) || 1);
   const canonicalPath = page > 1 ? `${landing.path}?page=${page}` : landing.path;
   const collection = collectionFromLanding(landing);
-  const filtered = hasIndexableFilters(collection, searchParams);
+  const listing = await loadCatalogListing(collection, searchParams);
   return {
     title: landing.title,
     description: landing.description,
     ...canonicalMetadata(canonicalPath),
-    ...(filtered ? NOINDEX_FOLLOW : {}),
+    ...(shouldNoindexCatalog(collection, listing.total, searchParams) ? NOINDEX_FOLLOW : {}),
     openGraph: {
       ...canonicalMetadata(canonicalPath).openGraph,
       title: `${landing.h1} | LUMI`,
