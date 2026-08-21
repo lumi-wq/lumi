@@ -68,6 +68,7 @@ const nextConfig = {
   async redirects() {
     return [
       { source: "/category/kids", destination: "/category/new", permanent: true },
+      { source: "/category/kidswear", destination: "/", permanent: true },
       { source: "/category/teens", destination: "/category/pidlitkovyy-odyag", permanent: true },
       {
         source: "/category/new",
