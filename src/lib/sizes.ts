@@ -3,7 +3,7 @@
  *
  * Об’єднані сітки виробників:
  * - крок 5 см (110–190) — гнучкість при створенні товару
- * - крок 6 см (98–176) — класична дитяча сітка UA/EU
+ * - крок 6 см (92–176) — класична дитяча сітка UA/EU
  * - крок 10 см (110–190) — поширений крок у каталогах
  */
 
@@ -14,7 +14,7 @@ function range(from: number, to: number, step: number): number[] {
 }
 
 const BY_5 = range(110, 190, 5);
-const BY_6 = range(98, 176, 6);
+const BY_6 = range(92, 176, 6);
 const BY_10 = range(110, 190, 10);
 
 /** Усі доступні значення росту (см), відсортовані. */
@@ -76,6 +76,7 @@ export const LEGACY_AGE_TO_HEIGHT_CM: Record<string, number> = {
 
 /** Довідник для таблиці розмірів: вік (орієнтир) ↔ ріст. */
 export const SIZE_CHART: readonly { age: number; heightCm: number; heightRange: string }[] = [
+  { age: 2, heightCm: 92, heightRange: "88–96" },
   { age: 3, heightCm: 98, heightRange: "94–102" },
   { age: 4, heightCm: 104, heightRange: "100–108" },
   { age: 5, heightCm: 110, heightRange: "106–114" },
