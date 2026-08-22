@@ -5,16 +5,14 @@ export default function robots(): MetadataRoute.Robots {
   const base = getSiteUrl();
   return {
     rules: [
+      // Merchant Center вимагає окремі групи без Disallow:
+      // https://support.google.com/merchants/answer/12469142
+      { userAgent: "Googlebot", allow: "/" },
+      { userAgent: "Googlebot-Image", allow: "/" },
+      { userAgent: "AdsBot-Google", allow: "/" },
       {
         userAgent: "*",
         allow: ["/", "/api/media/"],
-        disallow: ["/admin", "/api", "/profile", "/checkout", "/cart", "/wishlist", "/auth"],
-      },
-      // Google Shopping качає фото з /api/media; без цього Merchant Center показує
-      // «Не вдалося показати зображення».
-      {
-        userAgent: ["Googlebot", "Googlebot-Image", "AdsBot-Google"],
-        allow: ["/api/media/"],
         disallow: ["/admin", "/api", "/profile", "/checkout", "/cart", "/wishlist", "/auth"],
       },
     ],
