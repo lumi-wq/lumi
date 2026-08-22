@@ -65,6 +65,9 @@ const nextConfig = {
       { protocol: "https", hostname: "*.blob.vercel-storage.com" },
     ],
   },
+  async rewrites() {
+    return [{ source: "/media/:path*", destination: "/api/media/:path*" }];
+  },
   async redirects() {
     return [
       { source: "/category/kids", destination: "/category/new", permanent: true },
