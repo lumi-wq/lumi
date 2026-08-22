@@ -45,8 +45,9 @@ const GOOGLE_CATEGORY: Record<string, string> = {
 };
 
 function publicUrl(pathOrUrl: string): string {
-  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
-  const path = pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`;
+  const rewritten = pathOrUrl.replace("/api/media/", "/media/");
+  if (/^https?:\/\//i.test(rewritten)) return rewritten;
+  const path = rewritten.startsWith("/") ? rewritten : `/${rewritten}`;
   return `${PRODUCTION_ORIGIN}${path}`;
 }
 

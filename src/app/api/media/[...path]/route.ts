@@ -20,8 +20,9 @@ export async function GET(_req: Request, { params }: { params: { path: string[] 
     }
     return new NextResponse(result.stream, {
       headers: {
-        "Content-Type": result.blob.contentType || "application/octet-stream",
+        "Content-Type": result.blob.contentType || "image/jpeg",
         "Cache-Control": "public, max-age=31536000, immutable",
+        ...(typeof result.blob.size === "number" ? { "Content-Length": String(result.blob.size) } : {}),
       },
     });
   } catch (err) {

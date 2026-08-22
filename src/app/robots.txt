@@ -13,8 +13,15 @@ Disallow:
 User-agent: Storebot-Google
 Disallow:
 
+User-agent: Google-Shopping
+Disallow:
+
+User-agent: FeedFetcher-Google
+Disallow:
+
 User-agent: *
 Allow: /
+Allow: /media/
 Allow: /api/media/
 Disallow: /admin
 Disallow: /api
