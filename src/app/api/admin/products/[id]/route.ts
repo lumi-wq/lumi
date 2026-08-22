@@ -9,6 +9,9 @@ import {
 } from "@/lib/product-colors";
 import { isFeaturedActive } from "@/lib/featured";
 import { allocateProductSlug, prismaErrorResponse } from "@/lib/product-slug";
+import { removeProductFromMerchantQuiet, syncProductToMerchantQuiet } from "@/lib/merchant/sync";
+
+export const maxDuration = 60;
 
 const updateSchema = z
   .object({
@@ -169,6 +172,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return updated;
     });
 
+    await syncProductToMerchantQuiet(product.id);
     return NextResponse.json({ product });
   } catch (err) {
     console.error("[admin/products PATCH]", err);
@@ -179,6 +183,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Заборонено" }, { status: 403 });
+  await removeProductFromMerchantQuiet(params.id);
   await prisma.product.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });
 }

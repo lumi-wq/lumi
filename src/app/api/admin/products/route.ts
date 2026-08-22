@@ -9,6 +9,9 @@ import {
 } from "@/lib/product-colors";
 import { expireFeaturedProducts } from "@/lib/featured";
 import { allocateProductSlug, prismaErrorResponse } from "@/lib/product-slug";
+import { syncProductToMerchantQuiet } from "@/lib/merchant/sync";
+
+export const maxDuration = 60;
 
 export async function GET() {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Заборонено" }, { status: 403 });
@@ -135,6 +138,7 @@ export async function POST(req: Request) {
       return created;
     });
 
+    await syncProductToMerchantQuiet(product.id);
     return NextResponse.json({ product }, { status: 201 });
   } catch (err) {
     console.error("[admin/products POST]", err);
