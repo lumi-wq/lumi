@@ -117,6 +117,28 @@ NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXX
 
 Адмін-панель (`/admin`) не трекається.
 
+## Google Merchant Center
+
+Товари з адмінки можна надсилати в Merchant Center через Merchant API (кожен колір × розмір — окрема пропозиція).
+
+1. У Merchant Center створіть джерело даних типу **API** (назва на кшталт `LUMI website`).
+2. У Google Cloud увімкніть **Merchant API**, створіть OAuth client (Desktop) і отримайте `refresh_token` зі scope `https://www.googleapis.com/auth/content`.
+3. Додайте змінні в `.env` і **Vercel Production**:
+
+```
+GOOGLE_MERCHANT_ACCOUNT_ID=...
+GOOGLE_MERCHANT_DATA_SOURCE_ID=...
+GOOGLE_MERCHANT_FEED_LABEL=UA
+GOOGLE_MERCHANT_CONTENT_LANGUAGE=uk
+GOOGLE_OAUTH_CLIENT_ID=...
+GOOGLE_OAUTH_CLIENT_SECRET=...
+GOOGLE_OAUTH_REFRESH_TOKEN=...
+```
+
+4. Redeploy. У `/admin/products` з’явиться кнопка **Надіслати товари в Google**. Збереження або видалення товару також оновлює фіда.
+
+Посилання та фото для Google завжди вказують на `https://lumi.kids`. Після синку обробка в Merchant Center може зайняти кілька хвилин.
+
 ## Нова Пошта (Україна)
 
 Використовується **український** API: `https://api.novaposhta.ua/v2.0/json/`.

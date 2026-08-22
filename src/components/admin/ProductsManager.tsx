@@ -8,6 +8,7 @@ import { normalizeHex } from "@/lib/color";
 import { DEFAULT_HEIGHT_SIZES, HEIGHT_SIZES, compareSizes } from "@/lib/sizes";
 import { ImageColorPicker } from "@/components/admin/ImageColorPicker";
 import { prepareProductImage, readJsonResponse } from "@/lib/prepare-product-image";
+import { MerchantSyncPanel } from "@/components/admin/MerchantSyncPanel";
 
 type Category = { id: string; name: string; slug?: string };
 type ProductTypeOption = {
@@ -150,6 +151,8 @@ export function ProductsManager({
   const [activeColorKey, setActiveColorKey] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [merchantBusyId, setMerchantBusyId] = useState<string | null>(null);
+  const [merchantRowMsg, setMerchantRowMsg] = useState("");
 
   const defaultCategoryId =
     categories.find((c) => c.slug === "kidswear")?.id ?? categories[0]?.id ?? "";
@@ -344,12 +347,44 @@ export function ProductsManager({
 
   const activeColor = form?.colors.find((c) => c.key === activeColorKey) ?? form?.colors[0];
 
+  const syncToMerchant = async (productId: string) => {
+    setMerchantBusyId(productId);
+    setMerchantRowMsg("");
+    try {
+      const res = await fetch("/api/admin/merchant/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId }),
+      });
+      const json = await readJsonResponse<{
+        error?: string;
+        result?: { inserted: number; failed: number };
+      }>(res);
+      if (!res.ok) throw new Error(json.error ?? "Помилка синхронізації");
+      const failed = json.result?.failed ?? 0;
+      setMerchantRowMsg(
+        failed > 0
+          ? `Надіслано ${json.result?.inserted ?? 0}, помилок ${failed}`
+          : `Надіслано в Merchant Center: ${json.result?.inserted ?? 0} варіантів`
+      );
+    } catch (e) {
+      setMerchantRowMsg(e instanceof Error ? e.message : "Помилка синхронізації");
+    } finally {
+      setMerchantBusyId(null);
+    }
+  };
+
   return (
     <div className="mt-6">
+      <MerchantSyncPanel productIds={(data?.products ?? []).map((p) => p.id)} />
+
       {!form && (
         <button onClick={openNew} className="btn-primary">
           + Додати товар
         </button>
+      )}
+      {merchantRowMsg && !form && (
+        <p className="mt-3 text-sm text-obsidian/70">{merchantRowMsg}</p>
       )}
 
       {form && (
@@ -731,6 +766,14 @@ export function ProductsManager({
                   <td className="px-5 py-3.5 text-right">
                     <button onClick={() => edit(p)} className="font-semibold text-cobalt hover:underline">
                       Редагувати
+                    </button>
+                    <button
+                      type="button"
+                      disabled={merchantBusyId === p.id}
+                      onClick={() => void syncToMerchant(p.id)}
+                      className="ml-4 font-semibold text-cobalt hover:underline disabled:opacity-50"
+                    >
+                      {merchantBusyId === p.id ? "Google…" : "У Google"}
                     </button>
                     <button
                       onClick={() => {
