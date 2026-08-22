@@ -50,6 +50,9 @@ export const metadata: Metadata = {
         follow: true,
         googleBot: { index: true, follow: true },
       },
+  verification: {
+    google: "gc_8eG8BlCf8mQLhOdiTLspp0wvkhwL1tTt-dQSi0Ag",
+  },
   other: {
     "geo.region": "UA",
     "geo.placename": `${BRAND_LOCALITY}, ${BRAND_REGION}`,
