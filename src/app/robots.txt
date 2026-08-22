@@ -1,0 +1,28 @@
+User-agent: Googlebot
+Disallow:
+
+User-agent: Googlebot-Image
+Disallow:
+
+User-agent: Googlebot-image
+Disallow:
+
+User-agent: AdsBot-Google
+Disallow:
+
+User-agent: Storebot-Google
+Disallow:
+
+User-agent: *
+Allow: /
+Allow: /api/media/
+Disallow: /admin
+Disallow: /api
+Disallow: /profile
+Disallow: /checkout
+Disallow: /cart
+Disallow: /wishlist
+Disallow: /auth
+
+Host: lumi.kids
+Sitemap: https://lumi.kids/sitemap.xml
