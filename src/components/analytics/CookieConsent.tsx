@@ -37,8 +37,8 @@ export function CookieConsent() {
     <div className="fixed inset-x-0 bottom-0 z-[80] p-4 md:p-6">
       <div className="mx-auto flex max-w-3xl flex-col gap-4 rounded-card bg-white p-5 shadow-lg ring-1 ring-black/5 md:flex-row md:items-center md:p-6">
         <p className="flex-1 text-sm leading-relaxed text-obsidian/80">
-          Щоб розуміти, які сторінки й товари переглядають відвідувачі, ми використовуємо Google
-          Analytics. Детальніше — у{" "}
+          Щоб розуміти, які сторінки й товари переглядають відвідувачі, і вимірювати ефективність
+          реклами, ми використовуємо Google Analytics і Google Ads. Детальніше — у{" "}
           <Link href="/privacy" className="font-semibold text-cobalt underline underline-offset-2">
             політиці конфіденційності
           </Link>

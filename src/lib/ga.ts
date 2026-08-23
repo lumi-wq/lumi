@@ -1,4 +1,7 @@
 export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "";
+export const AW_CONVERSION_ID = process.env.NEXT_PUBLIC_AW_CONVERSION_ID ?? "AW-18405988896";
+export const AW_ADD_TO_CART_SEND_TO =
+  process.env.NEXT_PUBLIC_AW_ADD_TO_CART ?? "AW-18405988896/4u1tCP6XweYcEKC01MhE";
 export const GA_CONSENT_KEY = "lumi-analytics-consent";
 export const GA_OPEN_CONSENT_EVENT = "lumi:open-consent";
 export const CURRENCY = "UAH";
@@ -142,10 +145,17 @@ export function trackSelectItem(item: GaItem, listId?: string, listName?: string
   });
 }
 
-export function trackAddToCart(item: GaItem) {
+export function trackAddToCart(item: GaItem, opts?: { ads?: boolean }) {
+  const value = (item.price ?? 0) * (item.quantity ?? 1);
   ecommerce("add_to_cart", {
-    value: (item.price ?? 0) * (item.quantity ?? 1),
+    value,
     items: [item],
+  });
+  if (opts?.ads === false || !AW_ADD_TO_CART_SEND_TO) return;
+  track("conversion", {
+    send_to: AW_ADD_TO_CART_SEND_TO,
+    value,
+    currency: CURRENCY,
   });
 }
 
@@ -234,8 +244,8 @@ export function updateAnalyticsConsent(granted: boolean) {
   }
   gtag("consent", "update", {
     analytics_storage: value,
-    ad_storage: "denied",
-    ad_user_data: "denied",
+    ad_storage: value,
+    ad_user_data: value,
     ad_personalization: "denied",
   });
 }
