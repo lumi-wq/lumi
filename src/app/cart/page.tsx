@@ -193,7 +193,7 @@ export default function CartPage() {
                 <span className="w-6 text-center text-sm font-semibold">{line.qty}</span>
                 <button
                   onClick={() => {
-                    trackAddToCart(cartLineItem({ ...line, qty: 1 }));
+                    trackAddToCart(cartLineItem({ ...line, qty: 1 }), { ads: false });
                     setQty(line.variantId, line.qty + 1);
                   }}
                   aria-label="Більше"

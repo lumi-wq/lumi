@@ -1,5 +1,10 @@
 import Script from "next/script";
-import { GA_CONSENT_KEY, GA_MEASUREMENT_ID, isGaEnabled } from "@/lib/ga";
+import {
+  AW_CONVERSION_ID,
+  GA_CONSENT_KEY,
+  GA_MEASUREMENT_ID,
+  isGaEnabled,
+} from "@/lib/ga";
 import { GaClient } from "./GaClient";
 
 export function GaScripts() {
@@ -26,14 +31,18 @@ gtag('consent', 'default', {
 });
 try {
   if (localStorage.getItem(${JSON.stringify(GA_CONSENT_KEY)}) === 'granted') {
-    gtag('consent', 'update', { analytics_storage: 'granted' });
+    gtag('consent', 'update', {
+      analytics_storage: 'granted',
+      ad_storage: 'granted',
+      ad_user_data: 'granted'
+    });
   }
 } catch (e) {}
           `.trim(),
         }}
       />
       <Script
-        src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+        src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID || AW_CONVERSION_ID}`}
         strategy="afterInteractive"
       />
       <Script
@@ -45,10 +54,15 @@ window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 window.gtag = gtag;
 gtag('js', new Date());
-gtag('config', ${JSON.stringify(GA_MEASUREMENT_ID)}, {
+${
+  GA_MEASUREMENT_ID
+    ? `gtag('config', ${JSON.stringify(GA_MEASUREMENT_ID)}, {
   anonymize_ip: true,
   send_page_view: false${debugMode ? ",\n  debug_mode: true" : ""}
-});
+});`
+    : ""
+}
+${AW_CONVERSION_ID ? `gtag('config', ${JSON.stringify(AW_CONVERSION_ID)});` : ""}
           `.trim(),
         }}
       />
