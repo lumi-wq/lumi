@@ -170,6 +170,10 @@ model Order {
   warehouse       String
   paymentMethod   String      @default("card")
   paymentStatus   String      @default("pending")
+  /// Ідентифікатор інвойсу plata by mono — для перевірки статусу, якщо webhook запізнився.
+  invoiceId       String?     @unique
+  /// modifiedDate останнього застосованого статусу від Mono (щоб ігнорувати застарілі вебхуки).
+  paymentModifiedAt DateTime?
   status          OrderStatus @default(NEW)
   trackingNumber  String?
   npStatusCode    String?

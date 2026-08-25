@@ -2,7 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { CheckIcon } from "@/components/Icons";
-import { PurchaseTracker } from "@/components/analytics/PurchaseTracker";
+import { PaymentStatusSync } from "@/components/checkout/PaymentStatusSync";
+import { syncOrderPaymentFromMonobank } from "@/lib/payments";
 
 export const metadata = { title: "Замовлення оформлено" };
 export const dynamic = "force-dynamic";
@@ -12,25 +13,25 @@ export default async function SuccessPage({
 }: {
   searchParams: { order?: string };
 }) {
-  const order = searchParams.order
+  const loaded = searchParams.order
     ? await prisma.order.findUnique({
         where: { number: searchParams.order },
         include: { items: true },
       })
     : null;
 
+  if (loaded) {
+    const paymentStatus = await syncOrderPaymentFromMonobank(loaded);
+    if (paymentStatus !== loaded.paymentStatus) {
+      loaded.paymentStatus = paymentStatus;
+    }
+  }
+
+  const order = loaded;
   const trackHref = order ? `/orders/${encodeURIComponent(order.number)}` : "/orders";
 
   return (
     <div className="container-content flex justify-center py-24">
-      {order && (
-        <PurchaseTracker
-          orderNumber={order.number}
-          total={order.total}
-          shipping={order.shipping}
-          items={order.items}
-        />
-      )}
       <div className="w-full max-w-lg rounded-card bg-white p-10 text-center shadow-sm">
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-mint text-cobalt">
           <CheckIcon className="h-7 w-7" />
@@ -40,9 +41,15 @@ export default async function SuccessPage({
           <>
             <p className="mt-3 text-obsidian/70">
               Замовлення <b className="text-obsidian">#{order.number}</b> прийнято.
-              {order.paymentStatus === "paid"
-                ? " Оплату отримано."
-                : " Очікуємо підтвердження оплати карткою."}
+              <span>
+                <PaymentStatusSync
+                  orderNumber={order.number}
+                  initialStatus={order.paymentStatus}
+                  total={order.total}
+                  shipping={order.shipping}
+                  items={order.items}
+                />
+              </span>
             </p>
             <div className="mt-6 rounded-xl bg-chalk p-5 text-left text-sm">
               <p className="flex justify-between">

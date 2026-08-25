@@ -1,10 +1,22 @@
 import { createVerify } from "crypto";
+import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/site";
+
+export type PaymentBasketLine = {
+  name: string;
+  qty: number;
+  unitPrice: number;
+  code?: string;
+};
 
 export type PaymentOrder = {
   id: string;
   number: string;
   total: number;
   description: string;
+  items?: PaymentBasketLine[];
+  shipping?: number;
+  customerEmail?: string | null;
 };
 
 export type PaymentResult = {
@@ -18,9 +30,15 @@ export interface PaymentProvider {
   createPayment(order: PaymentOrder): Promise<PaymentResult>;
 }
 
-const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-
 const MONO_API = "https://api.monobank.ua";
+
+function toKopiyky(hryvnia: number): number {
+  return Math.round(hryvnia * 100);
+}
+
+function publicOrigin(): string {
+  return getSiteUrl().replace(/\/$/, "");
+}
 
 /** Мок для локальної розробки без банку. */
 class MockProvider implements PaymentProvider {
@@ -28,10 +46,62 @@ class MockProvider implements PaymentProvider {
 
   async createPayment(order: PaymentOrder): Promise<PaymentResult> {
     return {
-      redirectUrl: `${siteUrl()}/checkout/success?order=${order.number}&paid=1`,
+      redirectUrl: `${publicOrigin()}/checkout/success?order=${order.number}&paid=1`,
       provider: this.name,
     };
   }
+}
+
+type MonoBasketItem = {
+  name: string;
+  qty: number;
+  sum: number;
+  total: number;
+  unit: string;
+  code: string;
+};
+
+function buildBasket(order: PaymentOrder): MonoBasketItem[] {
+  const lines: MonoBasketItem[] = (order.items ?? []).map((item) => {
+    const sum = toKopiyky(item.unitPrice);
+    return {
+      name: item.name.slice(0, 120),
+      qty: item.qty,
+      sum,
+      total: sum * item.qty,
+      unit: "шт.",
+      code: (item.code ?? item.name).slice(0, 64),
+    };
+  });
+
+  if (order.shipping && order.shipping > 0) {
+    const sum = toKopiyky(order.shipping);
+    lines.push({
+      name: "Доставка Нова Пошта",
+      qty: 1,
+      sum,
+      total: sum,
+      unit: "шт.",
+      code: "shipping",
+    });
+  }
+
+  const basketSum = lines.reduce((acc, line) => acc + line.total, 0);
+  const amount = toKopiyky(order.total);
+  const delta = amount - basketSum;
+  // Від'ємні позиції Mono може відхилити — знижку лишаємо лише в amount.
+  if (lines.length > 0 && delta > 0) {
+    lines.push({
+      name: "Коригування",
+      qty: 1,
+      sum: delta,
+      total: delta,
+      unit: "шт.",
+      code: "adjust",
+    });
+  }
+
+  return lines;
 }
 
 /**
@@ -46,25 +116,32 @@ class MonobankProvider implements PaymentProvider {
     const token = process.env.MONOBANK_TOKEN;
     if (!token) throw new Error("MONOBANK_TOKEN не налаштований");
 
-    const amountKopiyky = Math.round(order.total * 100);
+    const amountKopiyky = toKopiyky(order.total);
     if (!Number.isFinite(amountKopiyky) || amountKopiyky < 100) {
       throw new Error("Сума замовлення занадто мала для оплати");
     }
 
-    const base = siteUrl().replace(/\/$/, "");
+    const base = publicOrigin();
+    const basketOrder = buildBasket(order);
+    const merchantPaymInfo: Record<string, unknown> = {
+      reference: order.number,
+      destination: order.description,
+      comment: order.description,
+    };
+    if (basketOrder.length > 0) merchantPaymInfo.basketOrder = basketOrder;
+    if (order.customerEmail) merchantPaymInfo.customerEmails = [order.customerEmail];
+
     const res = await fetch(`${MONO_API}/api/merchant/invoice/create`, {
       method: "POST",
       headers: { "X-Token": token, "Content-Type": "application/json" },
       body: JSON.stringify({
         amount: amountKopiyky,
         ccy: 980,
-        merchantPaymInfo: {
-          reference: order.number,
-          destination: order.description,
-        },
+        merchantPaymInfo,
         redirectUrl: `${base}/checkout/success?order=${encodeURIComponent(order.number)}`,
         webHookUrl: `${base}/api/payment/callback`,
         validity: 3600,
+        paymentType: "debit",
       }),
     });
 
@@ -91,7 +168,6 @@ export function getPaymentProvider(): PaymentProvider {
   return new MockProvider();
 }
 
-/** Статуси інвойсу Monobank, при яких вважаємо оплату успішною. */
 export function isMonobankPaymentSuccess(status: string | undefined): boolean {
   return status?.toLowerCase() === "success";
 }
@@ -104,6 +180,94 @@ export function extractMonobankOrderReference(payload: Record<string, unknown>):
     if (typeof ref === "string" && ref) return ref;
   }
   return undefined;
+}
+
+export async function fetchMonobankInvoiceStatus(
+  invoiceId: string
+): Promise<Record<string, unknown> | null> {
+  const token = process.env.MONOBANK_TOKEN;
+  if (!token) return null;
+
+  const res = await fetch(
+    `${MONO_API}/api/merchant/invoice/status?invoiceId=${encodeURIComponent(invoiceId)}`,
+    { headers: { "X-Token": token }, cache: "no-store" }
+  );
+  if (!res.ok) return null;
+  return (await res.json()) as Record<string, unknown>;
+}
+
+function parseModifiedAt(payload: Record<string, unknown>): Date {
+  const raw = payload.modifiedDate;
+  if (typeof raw === "string") {
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date();
+}
+
+/**
+ * Застосовує статус інвойсу Mono до замовлення.
+ * Ігнорує застарілі вебхуки (менший modifiedDate) і не знижує вже оплачене замовлення.
+ */
+export async function applyMonobankInvoice(
+  payload: Record<string, unknown>
+): Promise<{ paymentStatus: string } | null> {
+  const invoiceId = typeof payload.invoiceId === "string" ? payload.invoiceId : undefined;
+  const orderNumber = extractMonobankOrderReference(payload);
+  const status = typeof payload.status === "string" ? payload.status.toLowerCase() : "";
+  const modifiedAt = parseModifiedAt(payload);
+
+  const order = orderNumber
+    ? await prisma.order.findUnique({ where: { number: orderNumber } })
+    : invoiceId
+      ? await prisma.order.findUnique({ where: { invoiceId } })
+      : null;
+  if (!order) return null;
+
+  if (order.paymentModifiedAt && modifiedAt <= order.paymentModifiedAt) {
+    return { paymentStatus: order.paymentStatus };
+  }
+
+  const data: {
+    paymentModifiedAt: Date;
+    invoiceId?: string;
+    paymentStatus?: string;
+    status?: "PAID";
+  } = { paymentModifiedAt: modifiedAt };
+
+  if (invoiceId && order.invoiceId !== invoiceId) data.invoiceId = invoiceId;
+
+  if (order.paymentStatus === "paid") {
+    await prisma.order.update({ where: { id: order.id }, data });
+    return { paymentStatus: "paid" };
+  }
+
+  if (status === "success") {
+    data.paymentStatus = "paid";
+    if (order.status === "NEW") data.status = "PAID";
+  } else if (status === "failure" || status === "failed") {
+    data.paymentStatus = "failed";
+  } else if (status === "expired") {
+    data.paymentStatus = "expired";
+  } else if (status === "processing" && order.paymentStatus === "pending") {
+    data.paymentStatus = "processing";
+  }
+
+  await prisma.order.update({ where: { id: order.id }, data });
+  return { paymentStatus: data.paymentStatus ?? order.paymentStatus };
+}
+
+/** Підтягнути актуальний статус з API Mono, якщо webhook ще не дійшов. */
+export async function syncOrderPaymentFromMonobank(order: {
+  id: string;
+  invoiceId: string | null;
+  paymentStatus: string;
+}): Promise<string> {
+  if (order.paymentStatus === "paid" || !order.invoiceId) return order.paymentStatus;
+  const payload = await fetchMonobankInvoiceStatus(order.invoiceId);
+  if (!payload) return order.paymentStatus;
+  const applied = await applyMonobankInvoice(payload);
+  return applied?.paymentStatus ?? order.paymentStatus;
 }
 
 let cachedPubKeyPem: string | null = null;
@@ -123,7 +287,6 @@ async function fetchMonobankPubKeyPem(token: string): Promise<string> {
   const json = (await res.json()) as { key?: string };
   if (!json.key) throw new Error("Monobank pubkey: порожня відповідь");
 
-  // API повертає base64(PEM) або вже PEM
   let pem = json.key;
   if (!pem.includes("BEGIN")) {
     pem = Buffer.from(pem, "base64").toString("utf8");
@@ -156,4 +319,10 @@ export async function verifyMonobankWebhookSignature(
   } catch {
     return false;
   }
+}
+
+/** Skip лише локально / preview. На Vercel Production завжди перевіряємо підпис. */
+export function shouldSkipMonobankWebhookVerify(): boolean {
+  if (process.env.VERCEL_ENV === "production") return false;
+  return process.env.MONOBANK_SKIP_WEBHOOK_VERIFY === "1";
 }

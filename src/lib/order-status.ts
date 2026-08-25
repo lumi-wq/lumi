@@ -1,3 +1,18 @@
+export function paymentStatusLabel(status: string): string {
+  switch (status) {
+    case "paid":
+      return "оплачено";
+    case "failed":
+      return "неуспішно";
+    case "expired":
+      return "час оплати минув";
+    case "processing":
+      return "обробляється";
+    default:
+      return "очікує";
+  }
+}
+
 export const ORDER_STATUS_LABELS: Record<string, { label: string; className: string }> = {
   NEW: { label: "НОВЕ", className: "bg-chalk text-obsidian/70" },
   PAID: { label: "ОПЛАЧЕНО", className: "bg-mint text-obsidian" },

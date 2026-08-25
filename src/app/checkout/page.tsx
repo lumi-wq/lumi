@@ -335,9 +335,9 @@ export default function CheckoutPage() {
           <section className="rounded-card bg-white p-6 md:p-8">
             <h2 className="font-display text-lg font-bold">3. Оплата</h2>
             <div className="mt-5 rounded-input border-[1.5px] border-cobalt bg-cobalt/5 px-5 py-4">
-              <p className="text-sm font-bold">Карткою онлайн (plata by mono)</p>
+              <p className="text-sm font-bold">Оплата карткою</p>
               <p className="mt-1 text-xs leading-relaxed text-obsidian/60">
-                Visa / Mastercard будь-якого банку, Apple Pay і Google Pay через Monobank
+                Visa і Mastercard будь-якого банку. Також Apple Pay і Google Pay.
               </p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {["Visa", "Mastercard", "Apple Pay", "Google Pay"].map((label) => (
@@ -401,10 +401,10 @@ export default function CheckoutPage() {
             disabled={!canSubmit || submitting}
             className="btn-primary mt-6 w-full"
           >
-            {submitting ? "Опрацьовуємо..." : "Підтвердити замовлення"}
+            {submitting ? "Переходимо до оплати..." : "Оплатити"}
           </button>
           <p className="mt-3 text-center text-xs text-obsidian/50">
-            Реєстрація не потрібна — оформлюйте як гість
+            Оплата карткою · Apple Pay · Google Pay. Реєстрація не потрібна.
           </p>
         </aside>
       </form>

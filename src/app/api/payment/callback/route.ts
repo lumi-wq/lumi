@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import {
-  extractMonobankOrderReference,
-  isMonobankPaymentSuccess,
+  applyMonobankInvoice,
+  shouldSkipMonobankWebhookVerify,
   verifyMonobankWebhookSignature,
 } from "@/lib/payments";
 
@@ -14,13 +13,9 @@ import {
 export async function POST(req: Request) {
   try {
     const rawBody = Buffer.from(await req.arrayBuffer());
-    const xSign =
-      req.headers.get("x-sign") ?? req.headers.get("X-Sign");
+    const xSign = req.headers.get("x-sign") ?? req.headers.get("X-Sign");
 
-    // У production обовʼязково перевіряємо підпис.
-    // Для локальних тестів можна MONOBANK_SKIP_WEBHOOK_VERIFY=1 (лише з тестовим токеном).
-    const skipVerify = process.env.MONOBANK_SKIP_WEBHOOK_VERIFY === "1";
-    if (!skipVerify) {
+    if (!shouldSkipMonobankWebhookVerify()) {
       const ok = await verifyMonobankWebhookSignature(rawBody, xSign);
       if (!ok) {
         return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
@@ -28,15 +23,7 @@ export async function POST(req: Request) {
     }
 
     const json = JSON.parse(rawBody.toString("utf8")) as Record<string, unknown>;
-    const orderNumber = extractMonobankOrderReference(json);
-    const status = typeof json.status === "string" ? json.status : undefined;
-
-    if (orderNumber && isMonobankPaymentSuccess(status)) {
-      await prisma.order.updateMany({
-        where: { number: orderNumber },
-        data: { paymentStatus: "paid", status: "PAID" },
-      });
-    }
+    await applyMonobankInvoice(json);
 
     // Monobank очікує 200 OK, інакше до 3 повторів
     return NextResponse.json({ ok: true });
