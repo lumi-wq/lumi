@@ -18,12 +18,16 @@ export async function POST(req: Request) {
     if (!shouldSkipMonobankWebhookVerify()) {
       const ok = await verifyMonobankWebhookSignature(rawBody, xSign);
       if (!ok) {
+        console.error("[monobank] webhook invalid signature");
         return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
       }
     }
 
     const json = JSON.parse(rawBody.toString("utf8")) as Record<string, unknown>;
-    await applyMonobankInvoice(json);
+    const applied = await applyMonobankInvoice(json);
+    if (!applied) {
+      console.error("[monobank] webhook order not found", typeof json.status === "string" ? json.status : "");
+    }
 
     // Monobank очікує 200 OK, інакше до 3 повторів
     return NextResponse.json({ ok: true });
