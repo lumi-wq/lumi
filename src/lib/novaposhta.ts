@@ -210,6 +210,19 @@ function mockQuote(weightKg: number): ShippingQuote {
   };
 }
 
+/** Тестова оплата 1 ₴ — доставку не рахуємо, щоб сума лишилась мінімальною. */
+export function freeTestPaymentQuote(): ShippingQuote {
+  const dispatch = getDispatchDate();
+  return {
+    shipping: 0,
+    npCost: 0,
+    weightKg: 0.1,
+    dispatchDate: formatNpDate(dispatch),
+    deliveryDate: formatNpDate(dispatch),
+    deliveryDateLabel: formatDeliveryDateUk(dispatch),
+  };
+}
+
 /**
  * Розрахунок вартості та орієнтовної дати доставки НП (відділення → відділення).
  */

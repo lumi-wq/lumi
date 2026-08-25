@@ -6,6 +6,7 @@ import { compareSizes } from "@/lib/sizes";
 import { ACCESSORY_TYPE_SLUGS } from "@/lib/product-types";
 import { activeFeaturedWhere, expireFeaturedProducts, isFeaturedActive } from "@/lib/featured";
 import { DEFAULT_FAQ, type SeoFaq, type SeoLanding } from "@/lib/seo-landings";
+import { TEST_PAYMENT_SLUG } from "@/lib/test-payment";
 import type { ProductWithVariants } from "@/lib/types";
 
 export const CATALOG_PAGE_SIZE = 9;
@@ -289,6 +290,7 @@ async function loadCatalogListingUncached(
   })();
 
   const where: Prisma.ProductWhereInput = {
+    slug: { not: TEST_PAYMENT_SLUG },
     ...(collection.categoryId ? { categoryId: collection.categoryId } : {}),
     ...(collection.isNew ? activeFeaturedWhere() : {}),
     ...(collection.isSale ? { isSale: true } : {}),
@@ -309,6 +311,7 @@ async function loadCatalogListingUncached(
             : [{ isFeatured: "desc" }, { createdAt: "desc" }];
 
   const baseFacetWhere: Prisma.ProductWhereInput = {
+    slug: { not: TEST_PAYMENT_SLUG },
     ...(collection.categoryId ? { categoryId: collection.categoryId } : {}),
     ...(collection.isNew ? activeFeaturedWhere() : {}),
     ...(collection.isSale ? { isSale: true } : {}),

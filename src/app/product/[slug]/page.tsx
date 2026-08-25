@@ -2,19 +2,24 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 import { toCardData } from "@/lib/types";
 import { isFeaturedActive } from "@/lib/featured";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { ProductDetailClient } from "@/components/product/ProductDetailClient";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { canonicalMetadata } from "@/lib/seo";
+import { canonicalMetadata, NOINDEX } from "@/lib/seo";
+import { isTestPaymentSlug, TEST_PAYMENT_SLUG } from "@/lib/test-payment";
 import { absoluteUrl } from "@/lib/site";
 import { typeClusterPath } from "@/lib/seo-landing-paths";
 
 export const revalidate = 60;
 
 export async function generateStaticParams() {
-  const products = await prisma.product.findMany({ select: { slug: true } });
+  const products = await prisma.product.findMany({
+    where: { slug: { not: TEST_PAYMENT_SLUG } },
+    select: { slug: true },
+  });
   return products.map((p) => ({ slug: p.slug }));
 }
 
@@ -28,6 +33,11 @@ export async function generateMetadata({
     include: { productType: true },
   });
   if (!product) return {};
+  if (isTestPaymentSlug(product.slug)) {
+    const admin = await requireAdmin();
+    if (!admin) return {};
+    return { title: product.name, ...NOINDEX };
+  }
   const who = product.gender === "GIRL" ? "дівчаток" : "хлопчиків";
   const typeName = product.productType?.name;
   const description = `${product.description} Купити онлайн з доставкою Новою Поштою по Україні.`.slice(
@@ -59,10 +69,15 @@ export default async function ProductPage({ params }: { params: { slug: string }
     },
   });
   if (!product) notFound();
+  if (isTestPaymentSlug(product.slug)) {
+    const admin = await requireAdmin();
+    if (!admin) notFound();
+  }
 
   const related = await prisma.product.findMany({
     where: {
       id: { not: product.id },
+      slug: { not: TEST_PAYMENT_SLUG },
       ...(product.productTypeId
         ? { productTypeId: product.productTypeId }
         : { categoryId: product.categoryId }),
@@ -155,8 +170,12 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
   return (
     <>
-      <JsonLd data={jsonLd} />
-      <JsonLd data={breadcrumbLd} />
+      {!isTestPaymentSlug(product.slug) && (
+        <>
+          <JsonLd data={jsonLd} />
+          <JsonLd data={breadcrumbLd} />
+        </>
+      )}
       <section className="bg-chalk">
         <div className="container-content py-8">
           <nav className="text-[13px] text-obsidian/60" aria-label="Хлібні крихти">

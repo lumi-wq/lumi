@@ -6,6 +6,7 @@ import { ProductGrid } from "@/components/product/ProductGrid";
 import { SearchBanner } from "@/components/catalog/SearchBanner";
 import { SearchTracker } from "@/components/analytics/SearchTracker";
 import { NOINDEX_FOLLOW } from "@/lib/seo";
+import { TEST_PAYMENT_SLUG } from "@/lib/test-payment";
 
 export const metadata = { title: "Пошук", ...NOINDEX_FOLLOW };
 
@@ -27,6 +28,7 @@ export default async function SearchPage({
   const products = q
     ? await prisma.product.findMany({
         where: {
+          slug: { not: TEST_PAYMENT_SLUG },
           OR: [
             { name: { contains: q, mode: "insensitive" } },
             { description: { contains: q, mode: "insensitive" } },

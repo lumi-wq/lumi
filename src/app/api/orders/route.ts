@@ -3,9 +3,10 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { applyGuestCookie, getOrCreateGuestId, normalizePhone } from "@/lib/guest";
-import { quoteWarehouseShipping } from "@/lib/novaposhta";
+import { freeTestPaymentQuote, quoteWarehouseShipping } from "@/lib/novaposhta";
 import { cartWeightKg } from "@/lib/shipping-weight";
 import { ORDERS_CLOSED_MESSAGE, ordersEnabled } from "@/lib/orders-enabled";
+import { cartIsTestPaymentOnly, isTestPaymentSlug } from "@/lib/test-payment";
 
 const schema = z.object({
   firstName: z.string().min(1),
@@ -46,6 +47,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Деякі товари недоступні" }, { status: 409 });
   }
 
+  if (variants.some((v) => isTestPaymentSlug(v.product.slug)) && !user?.isAdmin) {
+    return NextResponse.json({ error: "Замовлення не знайдено" }, { status: 404 });
+  }
+
   const lines = data.items.map((item) => {
     const variant = variants.find((v) => v.id === item.variantId)!;
     return { item, variant };
@@ -63,11 +68,13 @@ export async function POST(req: Request) {
     }))
   );
 
-  const quote = await quoteWarehouseShipping({
-    cityRecipientRef: data.cityRef,
-    weightKg,
-    declaredCost: subtotal,
-  });
+  const quote = cartIsTestPaymentOnly(variants.map((v) => v.product.slug))
+    ? freeTestPaymentQuote()
+    : await quoteWarehouseShipping({
+        cityRecipientRef: data.cityRef,
+        weightKg,
+        declaredCost: subtotal,
+      });
   const shipping = quote.shipping;
   const total = subtotal + shipping;
 

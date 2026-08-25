@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
+import { isTestPaymentSlug } from "@/lib/test-payment";
 
 const schema = z.object({
   items: z.array(z.object({ variantId: z.string(), quantity: z.number().int().min(1) })),
@@ -19,8 +20,12 @@ export async function POST(req: Request) {
   }
 
   for (const item of parsed.data.items) {
-    const variant = await prisma.productVariant.findUnique({ where: { id: item.variantId } });
+    const variant = await prisma.productVariant.findUnique({
+      where: { id: item.variantId },
+      include: { product: { select: { slug: true } } },
+    });
     if (!variant) continue;
+    if (isTestPaymentSlug(variant.product.slug) && !user.isAdmin) continue;
     await prisma.cartItem.upsert({
       where: { userId_variantId: { userId: user.id, variantId: item.variantId } },
       update: { quantity: item.quantity },

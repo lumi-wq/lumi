@@ -8,6 +8,7 @@ import {
   resolveWishlistOwner,
   wishlistWhere,
 } from "@/lib/wishlist";
+import { isTestPaymentSlug } from "@/lib/test-payment";
 
 function mapItems(
   items: Awaited<ReturnType<typeof listWishlistItems>>
@@ -53,9 +54,9 @@ export async function POST(req: Request) {
 
   const product = await prisma.product.findUnique({
     where: { id: parsed.data.productId },
-    select: { id: true },
+    select: { id: true, slug: true },
   });
-  if (!product) {
+  if (!product || (isTestPaymentSlug(product.slug) && !user?.isAdmin)) {
     return NextResponse.json({ error: "Товар не знайдено" }, { status: 404 });
   }
 

@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/admin", label: "Огляд" },
   { href: "/admin/products", label: "Товари" },
   { href: "/admin/orders", label: "Замовлення" },
+  { href: "/product/test-oplata", label: "Тест оплати 1 ₴" },
 ];
 
 export function AdminNav() {

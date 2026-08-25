@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getPaymentProvider } from "@/lib/payments";
 import { ORDERS_CLOSED_MESSAGE, ordersEnabled } from "@/lib/orders-enabled";
 import { getSiteUrl } from "@/lib/site";
+import { getSessionUser } from "@/lib/auth";
+import { isTestPaymentSlug } from "@/lib/test-payment";
 
 const schema = z.object({ orderId: z.string() });
 
@@ -23,6 +25,17 @@ export async function POST(req: Request) {
     include: { items: true },
   });
   if (!order) return NextResponse.json({ error: "Замовлення не знайдено" }, { status: 404 });
+
+  const orderedProducts = await prisma.product.findMany({
+    where: { id: { in: order.items.map((item) => item.productId) } },
+    select: { slug: true },
+  });
+  if (orderedProducts.some((p) => isTestPaymentSlug(p.slug))) {
+    const user = await getSessionUser();
+    if (!user?.isAdmin) {
+      return NextResponse.json({ error: "Замовлення не знайдено" }, { status: 404 });
+    }
+  }
 
   if (order.paymentStatus === "paid") {
     return NextResponse.json({

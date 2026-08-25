@@ -12,6 +12,7 @@ import {
   offerIdPrefix,
   type MerchantProductSource,
 } from "./map-product";
+import { isTestPaymentSlug, TEST_PAYMENT_SLUG } from "@/lib/test-payment";
 
 const merchantInclude = {
   colors: { orderBy: { sortOrder: "asc" as const } },
@@ -62,6 +63,10 @@ export async function syncProductToMerchant(productId: string): Promise<Merchant
   const product = await loadProduct(productId);
   if (!product) {
     throw new MerchantApiError("Товар не знайдено", 404);
+  }
+  if (isTestPaymentSlug(product.slug)) {
+    const deleted = await removeProductFromMerchant(productId);
+    return { productId, name: product.name, inserted: 0, deleted, failed: 0, items: [] };
   }
 
   const inputs = mapProductToInputs(product);
@@ -117,6 +122,7 @@ export async function removeProductFromMerchant(productId: string): Promise<numb
 
 export async function listCatalogProductIds(): Promise<string[]> {
   const rows = await prisma.product.findMany({
+    where: { slug: { not: TEST_PAYMENT_SLUG } },
     select: { id: true },
     orderBy: { createdAt: "desc" },
   });
