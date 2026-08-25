@@ -38,7 +38,7 @@ export function PaymentStatusSync({
     const id = setInterval(() => {
       attempts += 1;
       void tick();
-      if (attempts >= 10) clearInterval(id);
+      if (attempts >= 30) clearInterval(id);
     }, 2000);
 
     return () => {

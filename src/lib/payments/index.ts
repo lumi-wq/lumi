@@ -192,7 +192,10 @@ export async function fetchMonobankInvoiceStatus(
     `${MONO_API}/api/merchant/invoice/status?invoiceId=${encodeURIComponent(invoiceId)}`,
     { headers: { "X-Token": token }, cache: "no-store" }
   );
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error("[monobank] invoice status", res.status);
+    return null;
+  }
   return (await res.json()) as Record<string, unknown>;
 }
 
@@ -224,10 +227,6 @@ export async function applyMonobankInvoice(
       : null;
   if (!order) return null;
 
-  if (order.paymentModifiedAt && modifiedAt <= order.paymentModifiedAt) {
-    return { paymentStatus: order.paymentStatus };
-  }
-
   const data: {
     paymentModifiedAt: Date;
     invoiceId?: string;
@@ -238,8 +237,17 @@ export async function applyMonobankInvoice(
   if (invoiceId && order.invoiceId !== invoiceId) data.invoiceId = invoiceId;
 
   if (order.paymentStatus === "paid") {
-    await prisma.order.update({ where: { id: order.id }, data });
+    if (!order.paymentModifiedAt || modifiedAt > order.paymentModifiedAt) {
+      await prisma.order.update({ where: { id: order.id }, data });
+    }
     return { paymentStatus: "paid" };
+  }
+
+  // Успішну оплату не відкидаємо, навіть якщо processing прийшов із пізнішим часом.
+  const isOlder =
+    order.paymentModifiedAt != null && modifiedAt < order.paymentModifiedAt;
+  if (isOlder && status !== "success") {
+    return { paymentStatus: order.paymentStatus };
   }
 
   if (status === "success") {

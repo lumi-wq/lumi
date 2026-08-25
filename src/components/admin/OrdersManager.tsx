@@ -111,12 +111,13 @@ export function OrdersManager() {
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-[12px] uppercase text-obsidian/50">
-                  {order.paymentMethod === "card" ? "Картка онлайн" : "Післяплата (НП)"} /{" "}
+                  Оплата: {order.paymentMethod === "card" ? "картка" : "післяплата"} ·{" "}
                   {paymentStatusLabel(order.paymentStatus)}
                 </span>
                 <select
                   value={order.status}
                   onChange={(e) => patch.mutate({ id: order.id, status: e.target.value })}
+                  aria-label="Статус збірки"
                   className="cursor-pointer rounded-lg border border-[#E0E0E0] px-3 py-2 text-sm font-semibold outline-none"
                 >
                   {STATUSES.map((s) => (
