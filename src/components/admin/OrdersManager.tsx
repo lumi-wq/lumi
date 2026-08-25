@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatPrice, formatDate } from "@/lib/format";
+import { paymentStatusLabel } from "@/lib/order-status";
 
 type AdminOrderItem = {
   id: string;
@@ -111,7 +112,7 @@ export function OrdersManager() {
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-[12px] uppercase text-obsidian/50">
                   {order.paymentMethod === "card" ? "Картка онлайн" : "Післяплата (НП)"} /{" "}
-                  {order.paymentStatus === "paid" ? "оплачено" : "очікує"}
+                  {paymentStatusLabel(order.paymentStatus)}
                 </span>
                 <select
                   value={order.status}

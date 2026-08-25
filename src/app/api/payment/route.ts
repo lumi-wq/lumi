@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getPaymentProvider } from "@/lib/payments";
 import { ORDERS_CLOSED_MESSAGE, ordersEnabled } from "@/lib/orders-enabled";
+import { getSiteUrl } from "@/lib/site";
 
 const schema = z.object({ orderId: z.string() });
 
@@ -17,8 +18,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Невірний запит" }, { status: 400 });
   }
 
-  const order = await prisma.order.findUnique({ where: { id: parsed.data.orderId } });
+  const order = await prisma.order.findUnique({
+    where: { id: parsed.data.orderId },
+    include: { items: true },
+  });
   if (!order) return NextResponse.json({ error: "Замовлення не знайдено" }, { status: 404 });
+
+  if (order.paymentStatus === "paid") {
+    return NextResponse.json({
+      redirectUrl: `${getSiteUrl()}/checkout/success?order=${encodeURIComponent(order.number)}`,
+      provider: "already-paid",
+    });
+  }
 
   const provider = getPaymentProvider();
   try {
@@ -27,14 +38,26 @@ export async function POST(req: Request) {
       number: order.number,
       total: order.total,
       description: `Замовлення ${order.number} — LUMI`,
+      items: order.items.map((item) => ({
+        name: [item.name, item.size].filter(Boolean).join(", "),
+        qty: item.quantity,
+        unitPrice: item.price,
+        code: item.productId,
+      })),
+      shipping: order.shipping,
+      customerEmail: order.email,
     });
-    // Мок-провайдер одразу позначає замовлення оплаченим
-    if (provider.name === "mock") {
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { paymentStatus: "paid", status: "PAID" },
-      });
-    }
+
+    await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        invoiceId: result.invoiceId ?? undefined,
+        ...(provider.name === "mock"
+          ? { paymentStatus: "paid", status: "PAID" as const }
+          : {}),
+      },
+    });
+
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Помилка платіжного провайдера";

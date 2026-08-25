@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatPrice, formatDate, productCountLabel } from "@/lib/format";
-import { ORDER_STATUS_LABELS } from "@/lib/order-status";
+import { ORDER_STATUS_LABELS, paymentStatusLabel } from "@/lib/order-status";
 
 export type OrderDetailData = {
   number: string;
@@ -135,7 +135,8 @@ export function OrderDetailView({ order }: { order: OrderDetailData }) {
                 <dt className="text-obsidian/60">Оплата</dt>
                 <dd className="text-right font-medium">
                   {order.paymentMethod === "card" ? "Картка онлайн" : "Післяплата"}
-                  {order.paymentStatus === "paid" ? " · оплачено" : " · очікує"}
+                  {" · "}
+                  {paymentStatusLabel(order.paymentStatus)}
                 </dd>
               </div>
               {order.trackingNumber && (
