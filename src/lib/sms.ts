@@ -29,7 +29,7 @@ export async function sendSms(phone: string, text: string): Promise<void> {
   const token = process.env.SMSCLUB_TOKEN?.trim();
   const sender = process.env.SMS_SENDER?.trim();
   if (!token || !sender) {
-    console.log(`\n[LUMI SMS] → ${to}\n${text}\n`);
+    console.log(`[sms] mock → …${to.slice(-4)}`);
     return;
   }
 
@@ -52,4 +52,5 @@ export async function sendSms(phone: string, text: string): Promise<void> {
     const detail = json?.success_request?.add_info ?? json;
     throw new Error(`SMS Club: ${res.status} ${JSON.stringify(detail)}`);
   }
+  console.log("[sms] sent via SMS Club");
 }

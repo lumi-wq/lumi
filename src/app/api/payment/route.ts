@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     });
 
     if (provider.name === "mock") {
-      void notifyOrderPaid({ number: order.number, phone: order.phone, total: order.total });
+      await notifyOrderPaid({ number: order.number, phone: order.phone, total: order.total });
     }
 
     return NextResponse.json(result);

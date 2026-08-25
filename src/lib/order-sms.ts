@@ -12,6 +12,7 @@ export async function notifyOrderPaid(order: {
 }): Promise<void> {
   try {
     await sendSms(order.phone, orderPaidSmsText(order));
+    console.log("[sms] order paid ok", order.number);
   } catch (err) {
     console.error("[sms] order paid", order.number, err);
   }

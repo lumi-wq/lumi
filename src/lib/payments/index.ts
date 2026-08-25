@@ -264,7 +264,7 @@ export async function applyMonobankInvoice(
 
   await prisma.order.update({ where: { id: order.id }, data });
   if (data.paymentStatus === "paid") {
-    void notifyOrderPaid({ number: order.number, phone: order.phone, total: order.total });
+    await notifyOrderPaid({ number: order.number, phone: order.phone, total: order.total });
   }
   return { paymentStatus: data.paymentStatus ?? order.paymentStatus };
 }
