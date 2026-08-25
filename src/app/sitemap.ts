@@ -8,6 +8,7 @@ import {
   type CatalogFitProduct,
 } from "@/lib/catalog";
 import { SEO_LANDINGS } from "@/lib/seo-landings";
+import { TEST_PAYMENT_SLUG } from "@/lib/test-payment";
 import { getSiteUrl } from "@/lib/site";
 
 export const revalidate = 3600;
@@ -46,6 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const products = await prisma.product.findMany({
+      where: { slug: { not: TEST_PAYMENT_SLUG } },
       select: {
         slug: true,
         createdAt: true,

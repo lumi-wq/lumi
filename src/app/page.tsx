@@ -10,6 +10,7 @@ import { canonicalMetadata } from "@/lib/seo";
 import { activeFeaturedWhere, expireFeaturedProducts } from "@/lib/featured";
 import { PRODUCT_TYPE_TO_CLUSTER, typeClusterPath } from "@/lib/seo-landing-paths";
 import { isAccessoryTypeSlug } from "@/lib/product-types";
+import { TEST_PAYMENT_SLUG } from "@/lib/test-payment";
 
 export const revalidate = 0;
 
@@ -61,13 +62,13 @@ export default async function HomePage() {
 
   const [novelties, sale, categoryTiles] = await Promise.all([
     prisma.product.findMany({
-      where: activeFeaturedWhere(),
+      where: { ...activeFeaturedWhere(), slug: { not: TEST_PAYMENT_SLUG } },
       include: { variants: true },
       orderBy: [{ featuredAt: "desc" }, { createdAt: "desc" }],
       take: 4,
     }),
     prisma.product.findMany({
-      where: { isSale: true },
+      where: { isSale: true, slug: { not: TEST_PAYMENT_SLUG } },
       include: { variants: true },
       orderBy: { createdAt: "desc" },
       take: 8,

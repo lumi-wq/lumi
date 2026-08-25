@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { quoteWarehouseShipping } from "@/lib/novaposhta";
+import { freeTestPaymentQuote, quoteWarehouseShipping } from "@/lib/novaposhta";
 import { cartWeightKg } from "@/lib/shipping-weight";
+import { cartIsTestPaymentOnly } from "@/lib/test-payment";
 
 const schema = z.object({
   cityRef: z.string().min(1),
@@ -37,12 +38,13 @@ export async function POST(req: Request) {
 
   const declaredCost = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
   const weightKg = cartWeightKg(lines);
-
-  const quote = await quoteWarehouseShipping({
-    cityRecipientRef: parsed.data.cityRef,
-    weightKg,
-    declaredCost,
-  });
+  const quote = cartIsTestPaymentOnly(variants.map((v) => v.product.slug))
+    ? freeTestPaymentQuote()
+    : await quoteWarehouseShipping({
+        cityRecipientRef: parsed.data.cityRef,
+        weightKg,
+        declaredCost,
+      });
 
   return NextResponse.json({ quote });
 }
