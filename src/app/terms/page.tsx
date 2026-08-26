@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalDoc, LegalSection } from "@/components/legal/LegalDoc";
-import { canonicalMetadata } from "@/lib/seo";
+import {
+  BRAND_ADDRESS,
+  BRAND_EMAIL,
+  BRAND_PHONE,
+  BRAND_PHONE_DISPLAY,
+  BRAND_TELEGRAM_URL,
+  canonicalMetadata,
+} from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Умови користування та публічна оферта",
@@ -21,13 +28,25 @@ export default function TermsPage() {
         <p>
           Продавець: фізична особа-підприємець{" "}
           <strong className="font-semibold text-obsidian">Георгіян Наталія Миколаївна</strong>, ІПН{" "}
-          <strong className="font-semibold text-obsidian">2589317883</strong>, м. Сокиряни,
-          Чернівецька обл.
+          <strong className="font-semibold text-obsidian">2589317883</strong>. Адреса: {BRAND_ADDRESS}.
         </p>
         <p>
           Контакт:{" "}
-          <a href="mailto:lumi@lumi.kids" className="font-medium text-cobalt underline-offset-2 hover:underline">
-            lumi@lumi.kids
+          <a href={`mailto:${BRAND_EMAIL}`} className="font-medium text-cobalt underline-offset-2 hover:underline">
+            {BRAND_EMAIL}
+          </a>
+          ,{" "}
+          <a href={`tel:${BRAND_PHONE}`} className="font-medium text-cobalt underline-offset-2 hover:underline">
+            {BRAND_PHONE_DISPLAY}
+          </a>
+          , Telegram:{" "}
+          <a
+            href={BRAND_TELEGRAM_URL}
+            className="font-medium text-cobalt underline-offset-2 hover:underline"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {BRAND_PHONE_DISPLAY}
           </a>
           . Сайт:{" "}
           <a href="https://lumi.kids/" className="font-medium text-cobalt underline-offset-2 hover:underline">
@@ -77,9 +96,17 @@ export default function TermsPage() {
 
       <LegalSection id="dostavka-ta-povernennya" title="5. Доставка">
         <p>
+          Детальні умови — на сторінці{" "}
+          <Link href="/delivery" className="font-medium text-cobalt underline-offset-2 hover:underline">
+            Доставка
+          </Link>
+          .
+        </p>
+        <p>
           Доставка здійснюється службою <strong className="font-semibold text-obsidian">Нова Пошта</strong>{" "}
           у відділення або поштомат на території України. Кур’єрська доставка на адресу наразі не
-          надається.
+          надається. Вартість — за тарифами перевізника, рахується під час оформлення і сплачується
+          разом із замовленням.
         </p>
         <p>
           Орієнтовні строки прибуття показуються під час оформлення замовлення на підставі даних
@@ -91,7 +118,14 @@ export default function TermsPage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="6. Повернення та обмін">
+      <LegalSection id="povernennya-ta-obmin" title="6. Повернення та обмін">
+        <p>
+          Як оформити запит — на сторінці{" "}
+          <Link href="/returns" className="font-medium text-cobalt underline-offset-2 hover:underline">
+            Повернення та обмін
+          </Link>
+          .
+        </p>
         <p>
           Відповідно до законодавства про захист прав споживачів, ви можете повернути або обміняти
           товар належної якості протягом{" "}
@@ -137,7 +171,11 @@ export default function TermsPage() {
       <LegalSection title="7. Скасування замовлення">
         <p>
           До передачі посилки перевізнику ви можете звернутися щодо скасування. Після відправки
-          діють правила повернення (розділ 6). Повернення коштів за оплачене замовлення здійснюється
+          діють правила{" "}
+          <Link href="/returns" className="font-medium text-cobalt underline-offset-2 hover:underline">
+            повернення
+          </Link>
+          . Повернення коштів за оплачене замовлення здійснюється
           тим самим способом оплати в строки, передбачені платіжним сервісом і законом.
         </p>
       </LegalSection>

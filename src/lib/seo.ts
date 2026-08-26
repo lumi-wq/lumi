@@ -4,9 +4,16 @@ import { absoluteUrl } from "@/lib/site";
 export const BRAND = "LUMI";
 export const BRAND_LEGAL = "ФОП Георгіян Наталія Миколаївна";
 export const BRAND_EMAIL = "lumi@lumi.kids";
+export const BRAND_PHONE = "+380983018093";
+export const BRAND_PHONE_DISPLAY = "+38 (098) 301-80-93";
+export const BRAND_TELEGRAM_URL = "https://t.me/+380983018093";
+export const BRAND_STREET = "вул. Шевченка, 11 Б";
 export const BRAND_LOCALITY = "Сокиряни";
+export const BRAND_DISTRICT = "Дністровський район";
 export const BRAND_REGION = "Чернівецька область";
 export const BRAND_COUNTRY = "UA";
+/** Повна адреса для сайту і Merchant Center — без ФОП / ІПН. */
+export const BRAND_ADDRESS = `${BRAND_REGION}, ${BRAND_DISTRICT}, м. ${BRAND_LOCALITY}, ${BRAND_STREET}`;
 
 export const NOINDEX: Pick<Metadata, "robots"> = {
   robots: { index: false, follow: false },

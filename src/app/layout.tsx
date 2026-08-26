@@ -9,7 +9,17 @@ import { Footer } from "@/components/layout/Footer";
 import { Providers } from "@/components/Providers";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { absoluteUrl, getSiteUrl } from "@/lib/site";
-import { BRAND, BRAND_COUNTRY, BRAND_EMAIL, BRAND_LEGAL, BRAND_LOCALITY, BRAND_REGION } from "@/lib/seo";
+import {
+  BRAND,
+  BRAND_COUNTRY,
+  BRAND_EMAIL,
+  BRAND_LEGAL,
+  BRAND_LOCALITY,
+  BRAND_PHONE,
+  BRAND_REGION,
+  BRAND_STREET,
+  BRAND_TELEGRAM_URL,
+} from "@/lib/seo";
 import "./globals.css";
 
 // Gabarito та Geist не підтримують кирилицю, тому підключаємо
@@ -67,7 +77,9 @@ const orgJsonLd = {
   url: getSiteUrl(),
   logo: absoluteUrl("/icon-192.png"),
   email: BRAND_EMAIL,
+  telephone: BRAND_PHONE,
   inLanguage: "uk-UA",
+  sameAs: [BRAND_TELEGRAM_URL],
   areaServed: {
     "@type": "Country",
     name: "Ukraine",
@@ -75,9 +87,19 @@ const orgJsonLd = {
   },
   address: {
     "@type": "PostalAddress",
+    streetAddress: BRAND_STREET,
     addressLocality: BRAND_LOCALITY,
     addressRegion: BRAND_REGION,
     addressCountry: BRAND_COUNTRY,
+  },
+  contactPoint: {
+    "@type": "ContactPoint",
+    telephone: BRAND_PHONE,
+    email: BRAND_EMAIL,
+    contactType: "customer service",
+    areaServed: "UA",
+    availableLanguage: ["uk"],
+    url: BRAND_TELEGRAM_URL,
   },
   availableLanguage: ["uk"],
 };

@@ -69,7 +69,7 @@ export async function syncProductToMerchant(productId: string): Promise<Merchant
     return { productId, name: product.name, inserted: 0, deleted, failed: 0, items: [] };
   }
 
-  const inputs = mapProductToInputs(product);
+  const inputs = await mapProductToInputs(product);
   const keep = new Set(inputs.map((i) => i.offerId));
   const items = await pool(inputs, 4, async (input): Promise<MerchantSyncItemResult> => {
     try {

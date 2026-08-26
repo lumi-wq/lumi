@@ -194,6 +194,8 @@ export type ShippingQuote = {
   dispatchDate: string;
   deliveryDate: string | null;
   deliveryDateLabel: string | null;
+  /** true, якщо це не живий тариф НП (немає ключа / мок / помилка API). */
+  fallback?: boolean;
 };
 
 function mockQuote(weightKg: number): ShippingQuote {
@@ -207,6 +209,7 @@ function mockQuote(weightKg: number): ShippingQuote {
     dispatchDate: formatNpDate(dispatch),
     deliveryDate: formatNpDate(delivery),
     deliveryDateLabel: formatDeliveryDateUk(delivery),
+    fallback: true,
   };
 }
 
@@ -220,6 +223,7 @@ export function freeTestPaymentQuote(): ShippingQuote {
     dispatchDate: formatNpDate(dispatch),
     deliveryDate: formatNpDate(dispatch),
     deliveryDateLabel: formatDeliveryDateUk(dispatch),
+    fallback: true,
   };
 }
 
@@ -230,8 +234,11 @@ export async function quoteWarehouseShipping(input: {
   cityRecipientRef: string;
   weightKg: number;
   declaredCost: number;
+  /** Для фіда Google достатньо ціни — дату не питаємо, щоб не подвоювати запити до НП. */
+  includeDeliveryDate?: boolean;
 }): Promise<ShippingQuote> {
   const weightKg = Math.max(0.1, input.weightKg);
+  const includeDeliveryDate = input.includeDeliveryDate !== false;
 
   if (!process.env.NOVA_POSHTA_API_KEY || input.cityRecipientRef.startsWith("mock-city-")) {
     return mockQuote(weightKg);
@@ -242,16 +249,31 @@ export async function quoteWarehouseShipping(input: {
     const dispatch = getDispatchDate();
     const dateTime = formatNpDate(dispatch);
 
+    const pricePromise = npRequest<{ Cost?: number | string }>("InternetDocument", "getDocumentPrice", {
+      CitySender: citySender,
+      CityRecipient: input.cityRecipientRef,
+      Weight: String(weightKg),
+      ServiceType: "WarehouseWarehouse",
+      Cost: String(Math.max(1, Math.round(input.declaredCost))),
+      CargoType: "Parcel",
+      SeatsAmount: "1",
+    });
+
+    if (!includeDeliveryDate) {
+      const priceRows = await pricePromise;
+      const npCost = Math.round(Number(priceRows[0]?.Cost ?? 0));
+      return {
+        shipping: Math.max(0, npCost),
+        npCost: Math.max(0, npCost),
+        weightKg,
+        dispatchDate: dateTime,
+        deliveryDate: null,
+        deliveryDateLabel: null,
+      };
+    }
+
     const [priceRows, dateRows] = await Promise.all([
-      npRequest<{ Cost?: number | string }>("InternetDocument", "getDocumentPrice", {
-        CitySender: citySender,
-        CityRecipient: input.cityRecipientRef,
-        Weight: String(weightKg),
-        ServiceType: "WarehouseWarehouse",
-        Cost: String(Math.max(1, Math.round(input.declaredCost))),
-        CargoType: "Parcel",
-        SeatsAmount: "1",
-      }),
+      pricePromise,
       npRequest<{
         DeliveryDate?: { date?: string } | string;
         date?: string;
