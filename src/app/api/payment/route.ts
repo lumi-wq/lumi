@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getPaymentProvider } from "@/lib/payments";
+import { notifyOrderPaid } from "@/lib/order-sms";
 import { ORDERS_CLOSED_MESSAGE, ordersEnabled } from "@/lib/orders-enabled";
 import { getSiteUrl } from "@/lib/site";
 import { getSessionUser } from "@/lib/auth";
@@ -70,6 +71,10 @@ export async function POST(req: Request) {
           : {}),
       },
     });
+
+    if (provider.name === "mock") {
+      await notifyOrderPaid({ number: order.number, phone: order.phone, total: order.total });
+    }
 
     return NextResponse.json(result);
   } catch (err) {

@@ -1,5 +1,6 @@
 import { createVerify } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { notifyOrderPaid } from "@/lib/order-sms";
 import { getSiteUrl } from "@/lib/site";
 
 export type PaymentBasketLine = {
@@ -262,6 +263,9 @@ export async function applyMonobankInvoice(
   }
 
   await prisma.order.update({ where: { id: order.id }, data });
+  if (data.paymentStatus === "paid") {
+    await notifyOrderPaid({ number: order.number, phone: order.phone, total: order.total });
+  }
   return { paymentStatus: data.paymentStatus ?? order.paymentStatus };
 }
 
