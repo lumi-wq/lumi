@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { LegalDoc, LegalSection } from "@/components/legal/LegalDoc";
-import { canonicalMetadata } from "@/lib/seo";
+import {
+  BRAND_ADDRESS,
+  BRAND_EMAIL,
+  BRAND_PHONE,
+  BRAND_PHONE_DISPLAY,
+  canonicalMetadata,
+} from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Політика конфіденційності",
@@ -19,13 +25,17 @@ export default function PrivacyPage() {
         <p>
           Оператором персональних даних є фізична особа-підприємець{" "}
           <strong className="font-semibold text-obsidian">Георгіян Наталія Миколаївна</strong>, ІПН{" "}
-          <strong className="font-semibold text-obsidian">2589317883</strong>, м. Сокиряни,
-          Чернівецька обл. (далі — «LUMI», «ми»).
+          <strong className="font-semibold text-obsidian">2589317883</strong>, {BRAND_ADDRESS}{" "}
+          (далі — «LUMI», «ми»).
         </p>
         <p>
           Контакт для звернень щодо персональних даних:{" "}
-          <a href="mailto:lumi@lumi.kids" className="font-medium text-cobalt underline-offset-2 hover:underline">
-            lumi@lumi.kids
+          <a href={`mailto:${BRAND_EMAIL}`} className="font-medium text-cobalt underline-offset-2 hover:underline">
+            {BRAND_EMAIL}
+          </a>
+          ,{" "}
+          <a href={`tel:${BRAND_PHONE}`} className="font-medium text-cobalt underline-offset-2 hover:underline">
+            {BRAND_PHONE_DISPLAY}
           </a>
           .
         </p>

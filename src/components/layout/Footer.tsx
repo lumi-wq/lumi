@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
+import { FooterContacts } from "./StoreContacts";
 import { CookieSettingsButton } from "@/components/analytics/CookieSettingsButton";
 
 const COLUMNS = [
@@ -26,7 +27,9 @@ const COLUMNS = [
   {
     title: "Підтримка",
     links: [
-      { label: "Доставка та повернення", href: "/terms#dostavka-ta-povernennya" },
+      { label: "Контакти", href: "/contacts" },
+      { label: "Доставка", href: "/delivery" },
+      { label: "Повернення", href: "/returns" },
       { label: "Відслідкувати замовлення", href: "/orders" },
     ],
   },
@@ -41,6 +44,7 @@ export function Footer() {
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/70">
             Стильний одяг для дітей 6–16 років з натуральних матеріалів. Зручно, стильно, якісно.
           </p>
+          <FooterContacts />
         </div>
           <div className="grid gap-10 sm:grid-cols-3">
           {COLUMNS.map((col) => (

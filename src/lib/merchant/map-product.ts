@@ -1,10 +1,10 @@
 import { BRAND } from "@/lib/seo";
-import { SHIPPING_FEE } from "@/lib/format";
 import { parseHeightCm } from "@/lib/sizes";
 import { unitWeightKg } from "@/lib/shipping-weight";
 import { PRODUCTION_ORIGIN } from "@/lib/site";
 import type { ProductInputPayload } from "./client";
 import { getMerchantConfig } from "./config";
+import { merchantShippingAttributes } from "./shipping";
 
 export type MerchantProductSource = {
   id: string;
@@ -79,7 +79,9 @@ export function offerIdPrefix(productId: string): string {
   return `lumi-${productId}-`;
 }
 
-export function mapProductToInputs(product: MerchantProductSource): ProductInputPayload[] {
+export async function mapProductToInputs(
+  product: MerchantProductSource
+): Promise<ProductInputPayload[]> {
   const config = getMerchantConfig();
   if (!config) return [];
 
@@ -94,6 +96,7 @@ export function mapProductToInputs(product: MerchantProductSource): ProductInput
   const categoryId = GOOGLE_CATEGORY[typeSlug] ?? "1604";
   const weightKg = unitWeightKg(typeSlug);
   const productTypePath = typeName ? `Одяг > ${typeName}` : "Одяг";
+  const shippingAttrs = await merchantShippingAttributes(weightKg, product.price);
 
   const seen = new Set<string>();
   const inputs: ProductInputPayload[] = [];
@@ -139,15 +142,7 @@ export function mapProductToInputs(product: MerchantProductSource): ProductInput
         amountMicros: hryvniaToMicros(product.price),
         currencyCode: "UAH",
       },
-      shipping: [
-        {
-          country: "UA",
-          price: {
-            amountMicros: hryvniaToMicros(SHIPPING_FEE),
-            currencyCode: "UAH",
-          },
-        },
-      ],
+      ...shippingAttrs,
       shippingWeight: { value: weightKg, unit: "kg" },
       sellOnGoogleQuantity: String(Math.max(0, variant.stock)),
     };
