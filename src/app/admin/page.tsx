@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
+import { TelegramNotifyCard } from "@/components/admin/TelegramNotifyCard";
 
 export default async function AdminDashboard() {
   const [products, orders, users, revenue] = await Promise.all([
@@ -30,6 +31,7 @@ export default async function AdminDashboard() {
           </div>
         ))}
       </div>
+      <TelegramNotifyCard />
     </div>
   );
 }
