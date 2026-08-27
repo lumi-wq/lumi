@@ -46,6 +46,19 @@ export default function CheckoutPage() {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
+    void fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((json: { user?: { email?: string } | null }) => {
+        const sessionEmail = json.user?.email?.trim();
+        if (!sessionEmail) return;
+        setForm((prev) => (prev.email ? prev : { ...prev, email: sessionEmail }));
+      })
+      .catch(() => {
+        /* гість */
+      });
+  }, []);
+
+  useEffect(() => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => setDebouncedQuery(cityQuery), 300);
     return () => clearTimeout(debounceRef.current);
@@ -243,6 +256,7 @@ export default function CheckoutPage() {
               </div>
               <input
                 type="email"
+                autoComplete="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="Email (необов'язково)"
