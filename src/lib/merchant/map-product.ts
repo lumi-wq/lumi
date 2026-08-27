@@ -1,3 +1,4 @@
+import { displayColorName } from "@/lib/color";
 import { BRAND } from "@/lib/seo";
 import { parseHeightCm } from "@/lib/sizes";
 import { unitWeightKg } from "@/lib/shipping-weight";
@@ -117,7 +118,10 @@ export async function mapProductToInputs(
     const title = [product.name, variant.size].filter(Boolean).join(", ").slice(0, 150);
     const description = product.description.replace(/\s+/g, " ").trim().slice(0, 5000);
     const inStock = variant.stock > 0;
-    const colorLabel = (color?.name || variant.color || variant.colorHex).slice(0, 100);
+    const colorLabel = displayColorName(
+      color?.name || variant.color,
+      color?.colorHex || variant.colorHex
+    );
 
     const productAttributes: Record<string, unknown> = {
       title,

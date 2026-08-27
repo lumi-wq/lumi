@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/format";
-import { normalizeHex } from "@/lib/color";
+import { displayColorName, nearestUkrainianColorName, normalizeHex } from "@/lib/color";
 import { DEFAULT_HEIGHT_SIZES, HEIGHT_SIZES, compareSizes } from "@/lib/sizes";
 import { ImageColorPicker } from "@/components/admin/ImageColorPicker";
 import { prepareProductImage, readJsonResponse } from "@/lib/prepare-product-image";
@@ -130,7 +130,7 @@ function toPayload(form: FormState) {
     colors: form.colors.map((c) => {
       const hex = (normalizeHex(c.colorHex) ?? c.colorHex).toUpperCase();
       return {
-        name: hex,
+        name: displayColorName(c.name, hex),
         colorHex: hex,
         images: c.images,
         sizes: c.sizes.map((s) => ({ size: s.size, stock: Math.max(0, Number(s.stock) || 0) })),
@@ -594,7 +594,14 @@ export function ProductsManager({
                     colors={normalizeHex(activeColor.colorHex) ? [normalizeHex(activeColor.colorHex)!] : []}
                     onChangeColors={(hexes) => {
                       const hex = hexes[0];
-                      if (hex) updateColor(activeColor.key, { colorHex: hex, name: hex });
+                      if (hex) {
+                        const keepName =
+                          Boolean(activeColor.name.trim()) && !normalizeHex(activeColor.name);
+                        updateColor(activeColor.key, {
+                          colorHex: hex,
+                          name: keepName ? activeColor.name : nearestUkrainianColorName(hex),
+                        });
+                      }
                     }}
                   />
                 </div>
