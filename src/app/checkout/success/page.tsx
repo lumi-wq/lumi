@@ -3,7 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { CheckIcon } from "@/components/Icons";
 import { PaymentStatusSync } from "@/components/checkout/PaymentStatusSync";
+import {
+  estimatedDeliveryDateIso,
+  isGoogleCustomerReviewsEnabled,
+} from "@/lib/google-customer-reviews";
 import { syncOrderPaymentFromMonobank } from "@/lib/payments";
+import { cartIsTestPaymentOnly } from "@/lib/test-payment";
 
 export const metadata = { title: "Замовлення оформлено" };
 export const dynamic = "force-dynamic";
@@ -16,7 +21,7 @@ export default async function SuccessPage({
   const loaded = searchParams.order
     ? await prisma.order.findUnique({
         where: { number: searchParams.order },
-        include: { items: true },
+        include: { items: true, user: { select: { email: true } } },
       })
     : null;
 
@@ -29,6 +34,20 @@ export default async function SuccessPage({
 
   const order = loaded;
   const trackHref = order ? `/orders/${encodeURIComponent(order.number)}` : "/orders";
+  const email = (order?.email || order?.user?.email || "").trim();
+  let reviews: { email: string; estimatedDeliveryDate: string } | null = null;
+  if (order && email && isGoogleCustomerReviewsEnabled()) {
+    const products = await prisma.product.findMany({
+      where: { id: { in: order.items.map((item) => item.productId) } },
+      select: { slug: true },
+    });
+    if (!cartIsTestPaymentOnly(products.map((p) => p.slug))) {
+      reviews = {
+        email,
+        estimatedDeliveryDate: estimatedDeliveryDateIso(order.createdAt),
+      };
+    }
+  }
 
   return (
     <div className="container-content flex justify-center py-24">
@@ -48,6 +67,7 @@ export default async function SuccessPage({
                   total={order.total}
                   shipping={order.shipping}
                   items={order.items}
+                  reviews={reviews}
                 />
               </span>
             </p>

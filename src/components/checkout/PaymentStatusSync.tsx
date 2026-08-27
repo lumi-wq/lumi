@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PurchaseTracker, type PurchaseItem } from "@/components/analytics/PurchaseTracker";
+import { GoogleCustomerReviewsOptIn } from "@/components/analytics/GoogleCustomerReviewsOptIn";
 
 export function PaymentStatusSync({
   orderNumber,
@@ -9,12 +10,14 @@ export function PaymentStatusSync({
   total,
   shipping,
   items,
+  reviews,
 }: {
   orderNumber: string;
   initialStatus: string;
   total: number;
   shipping: number;
   items: PurchaseItem[];
+  reviews?: { email: string; estimatedDeliveryDate: string } | null;
 }) {
   const [status, setStatus] = useState(initialStatus);
 
@@ -60,12 +63,21 @@ export function PaymentStatusSync({
     <>
       {message}
       {status === "paid" && (
-        <PurchaseTracker
-          orderNumber={orderNumber}
-          total={total}
-          shipping={shipping}
-          items={items}
-        />
+        <>
+          <PurchaseTracker
+            orderNumber={orderNumber}
+            total={total}
+            shipping={shipping}
+            items={items}
+          />
+          {reviews?.email ? (
+            <GoogleCustomerReviewsOptIn
+              orderId={orderNumber}
+              email={reviews.email}
+              estimatedDeliveryDate={reviews.estimatedDeliveryDate}
+            />
+          ) : null}
+        </>
       )}
     </>
   );

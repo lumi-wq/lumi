@@ -71,6 +71,7 @@ export default function PrivacyPage() {
           <li>оформити, оплатити та доставити замовлення;</li>
           <li>ідентифікувати вас при вході в акаунт і перегляді замовлень;</li>
           <li>зв’язатися з вами щодо замовлення (уточнення, статус, повернення);</li>
+          <li>запропонувати залишити відгук у програмі Google Відгуки клієнтів після доставки;</li>
           <li>зберегти кошик / обране на вашому пристрої;</li>
           <li>
             зрозуміти, як користуються сайтом (популярні категорії, товари, джерела трафіку), і
@@ -123,6 +124,21 @@ export default function PrivacyPage() {
           <li>
             <strong className="font-semibold text-obsidian">plata by mono / Monobank</strong> — для
             онлайн-оплати;
+          </li>
+          <li>
+            <strong className="font-semibold text-obsidian">Google LLC (Google Відгуки клієнтів)</strong>{" "}
+            — після оплати на сторінці підтвердження можна погодитись залишити відгук. Тоді Google
+            отримує номер замовлення, email і орієнтовну дату доставки, щоб надіслати опитування
+            після отримання посилки. Модуль можна закрити — тоді лист не надсилається. Деталі:{" "}
+            <a
+              href="https://support.google.com/merchants/answer/7124317"
+              className="font-medium text-cobalt underline-offset-2 hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              правила програми
+            </a>
+            .
           </li>
           <li>
             <strong className="font-semibold text-obsidian">Google LLC (Google Analytics і Google Ads)</strong>{" "}
