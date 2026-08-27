@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { normalizeHeightSize } from "@/lib/sizes";
-import { normalizeHex } from "@/lib/color";
+import { nearestUkrainianColorName, normalizeHex } from "@/lib/color";
 
 const imagePath = z
   .string()
@@ -49,7 +49,10 @@ export function normalizeProductColors(colors: ProductColorInput[]) {
     if (sizeMap.size === 0) continue;
 
     normalized.push({
-      name: (c.name?.trim() || hex).slice(0, 80),
+      name: (c.name?.trim() && !normalizeHex(c.name) ? c.name.trim() : nearestUkrainianColorName(hex)).slice(
+        0,
+        80
+      ),
       colorHex: hex,
       images: c.images,
       sizes: Array.from(sizeMap, ([size, stock]) => ({ size, stock })),
