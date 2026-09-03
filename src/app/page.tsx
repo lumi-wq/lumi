@@ -66,7 +66,7 @@ export default async function HomePage() {
       where: { ...activeFeaturedWhere(), slug: { not: TEST_PAYMENT_SLUG } },
       include: { variants: true },
       orderBy: [{ featuredAt: "desc" }, { createdAt: "desc" }],
-      take: 4,
+      take: 8,
     }),
     prisma.product.findMany({
       where: { isSale: true, slug: { not: TEST_PAYMENT_SLUG } },
