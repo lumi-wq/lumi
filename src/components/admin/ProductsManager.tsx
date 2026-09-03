@@ -17,6 +17,7 @@ type ProductTypeOption = {
   slug: string;
   girlOnly: boolean;
   unisex: boolean;
+  boyOnly?: boolean;
 };
 
 type AdminColor = {
@@ -158,7 +159,12 @@ export function ProductsManager({
     categories.find((c) => c.slug === "kidswear")?.id ?? categories[0]?.id ?? "";
 
   const availableTypes = (gender: "BOY" | "GIRL") =>
-    productTypes.filter((t) => t.unisex || !t.girlOnly || gender === "GIRL");
+    productTypes.filter((t) => {
+      if (t.unisex) return true;
+      if (t.girlOnly) return gender === "GIRL";
+      if (t.boyOnly) return gender === "BOY";
+      return true;
+    });
 
   const selectedType = form
     ? productTypes.find((t) => t.id === form.productTypeId)

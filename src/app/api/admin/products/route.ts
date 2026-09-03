@@ -9,6 +9,7 @@ import {
 } from "@/lib/product-colors";
 import { expireFeaturedProducts } from "@/lib/featured";
 import { allocateProductSlug, prismaErrorResponse } from "@/lib/product-slug";
+import { productTypeGenderError } from "@/lib/product-types";
 import { syncProductToMerchantQuiet } from "@/lib/merchant/sync";
 
 export const maxDuration = 60;
@@ -81,11 +82,9 @@ export async function POST(req: Request) {
   if (!productType) {
     return NextResponse.json({ error: "Категорію не знайдено" }, { status: 400 });
   }
-  if (productType.girlOnly && !productType.unisex && data.gender !== "GIRL") {
-    return NextResponse.json(
-      { error: `«${productType.name}» доступні лише для дівчаток` },
-      { status: 400 }
-    );
+  const genderError = productTypeGenderError(productType, data.gender);
+  if (genderError) {
+    return NextResponse.json({ error: genderError }, { status: 400 });
   }
 
   const previewImages = colors[0].images;

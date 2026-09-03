@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ensureProductTypes } from "@/lib/ensure-product-types";
+import { isBoyOnlyTypeSlug } from "@/lib/product-types";
 import { ProductsManager } from "@/components/admin/ProductsManager";
 
 export default async function AdminProductsPage() {
@@ -14,7 +15,10 @@ export default async function AdminProductsPage() {
   return (
     <div>
       <h1 className="font-display text-2xl font-black">Товари</h1>
-      <ProductsManager categories={categories} productTypes={productTypes} />
+      <ProductsManager
+        categories={categories}
+        productTypes={productTypes.map((t) => ({ ...t, boyOnly: isBoyOnlyTypeSlug(t.slug) }))}
+      />
     </div>
   );
 }

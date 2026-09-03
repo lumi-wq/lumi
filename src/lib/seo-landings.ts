@@ -76,6 +76,14 @@ const TYPE_SEO: Record<
     allIntro:
       "Дитячі футболки 6–16 років. Базовий одяг для школи і дому. Купити онлайн з доставкою Новою Поштою.",
   },
+  shirts: {
+    slug: PRODUCT_TYPE_TO_CLUSTER.shirts,
+    short: "Сорочки",
+    girlsIntro: "",
+    boysIntro:
+      "Сорочки для хлопчиків 6–16 років — у школу та на кожен день. Підбір за ростом, доставка Новою Поштою по Україні.",
+    allIntro: "Дитячі сорочки для хлопчиків 6–16 років. Купити онлайн в LUMI з доставкою Новою Поштою.",
+  },
   pants: {
     slug: PRODUCT_TYPE_TO_CLUSTER.pants,
     short: "Штани",
@@ -172,6 +180,7 @@ const CLOTHING_TYPES = [
   "suits",
   "sets",
   "tshirts",
+  "shirts",
   "pants",
   "shorts",
   "dresses",
@@ -208,6 +217,7 @@ function typeAllowedFor(parent: GenderParent, typeSlug: string): boolean {
   const def = PRODUCT_TYPE_DEFS.find((t) => t.slug === typeSlug);
   if (!def) return false;
   if (def.girlOnly && parent === "boys") return false;
+  if ("boyOnly" in def && def.boyOnly && parent === "girls") return false;
   return true;
 }
 

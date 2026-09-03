@@ -9,6 +9,7 @@ import {
 } from "@/lib/product-colors";
 import { isFeaturedActive } from "@/lib/featured";
 import { allocateProductSlug, prismaErrorResponse } from "@/lib/product-slug";
+import { productTypeGenderError } from "@/lib/product-types";
 import { removeProductFromMerchantQuiet, syncProductToMerchantQuiet } from "@/lib/merchant/sync";
 
 export const maxDuration = 60;
@@ -82,11 +83,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const productTypeId = data.productTypeId ?? existing.productTypeId;
     if (productTypeId) {
       const productType = await prisma.productType.findUnique({ where: { id: productTypeId } });
-      if (productType?.girlOnly && !productType.unisex && gender !== "GIRL") {
-        return NextResponse.json(
-          { error: `«${productType.name}» доступні лише для дівчаток` },
-          { status: 400 }
-        );
+      const genderError = productType ? productTypeGenderError(productType, gender) : null;
+      if (genderError) {
+        return NextResponse.json({ error: genderError }, { status: 400 });
       }
     }
   }
