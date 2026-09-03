@@ -17,6 +17,7 @@ export type FilterProductType = {
   name: string;
   girlOnly: boolean;
   unisex?: boolean;
+  boyOnly?: boolean;
 };
 
 type Props = {
@@ -112,9 +113,12 @@ export function FiltersPanel({
     });
   };
 
-  const visibleTypes = productTypes.filter(
-    (t) => t.unisex || !t.girlOnly || selectedGender === "GIRL" || typesAlwaysVisible
-  );
+  const visibleTypes = productTypes.filter((t) => {
+    if (t.unisex || typesAlwaysVisible) return true;
+    if (t.girlOnly) return selectedGender === "GIRL";
+    if (t.boyOnly) return selectedGender === "BOY";
+    return true;
+  });
 
   const showTypeFilter =
     !lockedProductType &&

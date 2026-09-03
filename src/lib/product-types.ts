@@ -5,6 +5,7 @@ export const PRODUCT_TYPE_DEFS = [
   { slug: "suits", name: "Костюми", sortOrder: 25, girlOnly: false, unisex: false },
   { slug: "sets", name: "Комплекти", sortOrder: 28, girlOnly: false, unisex: false },
   { slug: "tshirts", name: "Футболки", sortOrder: 30, girlOnly: false, unisex: false },
+  { slug: "shirts", name: "Сорочки", sortOrder: 32, girlOnly: false, unisex: false, boyOnly: true },
   { slug: "pants", name: "Штани", sortOrder: 40, girlOnly: false, unisex: false },
   { slug: "shorts", name: "Шорти", sortOrder: 45, girlOnly: false, unisex: false },
   { slug: "dresses", name: "Сукні", sortOrder: 50, girlOnly: true, unisex: false },
@@ -16,6 +17,33 @@ export const PRODUCT_TYPE_DEFS = [
 ] as const;
 
 export type ProductTypeDef = (typeof PRODUCT_TYPE_DEFS)[number];
+
+export function productTypeDbFields(t: ProductTypeDef) {
+  return {
+    slug: t.slug,
+    name: t.name,
+    sortOrder: t.sortOrder,
+    girlOnly: t.girlOnly,
+    unisex: t.unisex,
+  };
+}
+
+export function isBoyOnlyTypeSlug(slug: string): boolean {
+  return PRODUCT_TYPE_DEFS.some((t) => t.slug === slug && "boyOnly" in t && t.boyOnly);
+}
+
+export function productTypeGenderError(
+  type: { slug: string; name: string; girlOnly: boolean; unisex: boolean },
+  gender: "BOY" | "GIRL"
+): string | null {
+  if (type.girlOnly && !type.unisex && gender !== "GIRL") {
+    return `«${type.name}» доступні лише для дівчаток`;
+  }
+  if (isBoyOnlyTypeSlug(type.slug) && gender !== "BOY") {
+    return `«${type.name}» доступні лише для хлопчиків`;
+  }
+  return null;
+}
 
 /** Підкатегорії розділу «Аксесуари». */
 export const ACCESSORY_TYPE_SLUGS = ["hats", "caps", "bags", "glasses"] as const;

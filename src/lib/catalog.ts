@@ -3,7 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { ProductGender } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { compareSizes } from "@/lib/sizes";
-import { ACCESSORY_TYPE_SLUGS } from "@/lib/product-types";
+import { ACCESSORY_TYPE_SLUGS, isBoyOnlyTypeSlug } from "@/lib/product-types";
 import { activeFeaturedWhere, expireFeaturedProducts, isFeaturedActive } from "@/lib/featured";
 import { DEFAULT_FAQ, type SeoFaq, type SeoLanding } from "@/lib/seo-landings";
 import { TEST_PAYMENT_SLUG } from "@/lib/test-payment";
@@ -85,11 +85,12 @@ export const BASE_COLLECTIONS: Record<string, CatalogCollection> = {
     h1: "Одяг для хлопчиків 6–16 років",
     description: "Одяг для хлопчиків 6–16 років — база, спорт і верхній одяг.",
     intro:
-      "Каталог LUMI для хлопчиків: футболки, штани, спортивні костюми, куртки. Замовлення на сайті з доставкою Новою Поштою.",
+      "Каталог LUMI для хлопчиків: футболки, сорочки, штани, спортивні костюми, куртки. Замовлення на сайті з доставкою Новою Поштою.",
     gender: "BOY",
     faq: DEFAULT_FAQ,
     related: [
       { href: "/category/boys/verkhniy-odyag", label: "Верхній одяг" },
+      { href: "/category/boys/sorochky", label: "Сорочки" },
       { href: "/category/boys/shkilnyy-odyag", label: "Шкільний одяг" },
       { href: "/category/boys/6-8-rokiv", label: "6–8 років" },
       { href: "/category/boys/13-16-rokiv", label: "13–16 років" },
@@ -201,6 +202,7 @@ export type CatalogListing = {
     name: string;
     girlOnly: boolean;
     unisex: boolean;
+    boyOnly: boolean;
   }[];
   typeAllowed: { slug: string; name: string } | null;
   gender: ProductGender | undefined;
@@ -257,7 +259,9 @@ async function loadCatalogListingUncached(
     : null;
 
   const typeAllowed =
-    productType && !(productType.girlOnly && !productType.unisex && gender === "BOY")
+    productType &&
+    !(productType.girlOnly && !productType.unisex && gender === "BOY") &&
+    !(isBoyOnlyTypeSlug(productType.slug) && gender === "GIRL")
       ? productType
       : null;
 
@@ -360,6 +364,7 @@ async function loadCatalogListingUncached(
       name: t.name,
       girlOnly: t.girlOnly,
       unisex: t.unisex || t.slug === "glasses",
+      boyOnly: isBoyOnlyTypeSlug(t.slug),
     })),
     typeAllowed: typeAllowed ? { slug: typeAllowed.slug, name: typeAllowed.name } : null,
     gender,
