@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import { MediaImage } from "@/components/MediaImage";
 
 export function Gallery({ images, alt }: { images: string[]; alt: string }) {
   const [active, setActive] = useState(0);
@@ -24,7 +24,7 @@ export function Gallery({ images, alt }: { images: string[]; alt: string }) {
     <div>
       <div className="relative h-[420px] overflow-hidden rounded-card bg-white md:h-[540px]">
         {images[safeActive] && (
-          <Image
+          <MediaImage
             src={images[safeActive]}
             alt={alt}
             fill
@@ -46,7 +46,7 @@ export function Gallery({ images, alt }: { images: string[]; alt: string }) {
               }`}
               aria-label={`Фото ${i + 1}`}
             >
-              <Image src={src} alt={`${alt} — фото ${i + 1}`} fill sizes="25vw" className="object-cover" />
+              <MediaImage src={src} alt={`${alt} — фото ${i + 1}`} fill sizes="25vw" className="object-cover" />
             </button>
           ))}
         </div>

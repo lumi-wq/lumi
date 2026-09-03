@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { MediaImage } from "@/components/MediaImage";
 import { useCallback, useRef, useState } from "react";
 import { normalizeHex } from "@/lib/color";
 
@@ -91,13 +91,12 @@ export function ImageColorPicker({ images, colors, onChangeColors, mode = "multi
                 i === activeImage ? "border-cobalt ring-2 ring-cobalt/30" : "border-black/10"
               }`}
             >
-              <Image
+              <MediaImage
                 src={url}
                 alt=""
                 fill
                 sizes="56px"
                 className="object-cover"
-                unoptimized={url.startsWith("blob:")}
               />
             </button>
           ))}

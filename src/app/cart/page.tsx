@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { MediaImage } from "@/components/MediaImage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -155,7 +155,7 @@ export default function CartPage() {
             >
               <Link href={`/product/${line.slug}`} className="relative h-[100px] w-[100px] shrink-0 overflow-hidden rounded-xl bg-mint/40">
                 {line.image && (
-                  <Image src={line.image} alt={line.name} fill sizes="100px" className="object-cover" />
+                  <MediaImage src={line.image} alt={line.name} fill sizes="100px" className="object-cover" />
                 )}
               </Link>
               <div className="min-w-0 flex-1">

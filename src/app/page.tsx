@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { toCardData } from "@/lib/types";
+import { MediaImage } from "@/components/MediaImage";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { ArrowRightIcon } from "@/components/Icons";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
@@ -193,7 +194,7 @@ export default async function HomePage() {
                   contentId={tile.label}
                   className="group relative h-[400px] overflow-hidden rounded-card"
                 >
-                  <Image
+                  <MediaImage
                     src={tile.image}
                     alt={tile.label}
                     fill
