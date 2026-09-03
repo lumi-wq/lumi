@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { MediaImage } from "@/components/MediaImage";
 import { useState } from "react";
 import { useCart } from "@/store/cart";
 import type { ProductCardData } from "@/lib/types";
@@ -70,7 +70,7 @@ export function ProductCard({
         className="relative block h-[320px] overflow-hidden bg-mint/40"
       >
         {product.image && (
-          <Image
+          <MediaImage
             src={product.image}
             alt={product.name}
             fill

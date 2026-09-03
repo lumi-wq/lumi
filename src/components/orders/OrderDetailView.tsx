@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { MediaImage } from "@/components/MediaImage";
 import Link from "next/link";
 import { formatPrice, formatDate, productCountLabel } from "@/lib/format";
 import { ORDER_STATUS_LABELS, paymentStatusLabel } from "@/lib/order-status";
@@ -64,7 +64,7 @@ export function OrderDetailView({ order }: { order: OrderDetailData }) {
               >
                 <div className="relative h-[88px] w-[88px] shrink-0 overflow-hidden rounded-xl bg-mint/40">
                   {item.image ? (
-                    <Image src={item.image} alt={item.name} fill sizes="88px" className="object-cover" />
+                    <MediaImage src={item.image} alt={item.name} fill sizes="88px" className="object-cover" />
                   ) : null}
                 </div>
                 <div className="min-w-0 flex-1">

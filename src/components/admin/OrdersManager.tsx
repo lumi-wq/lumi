@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { MediaImage } from "@/components/MediaImage";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatPrice, formatDate } from "@/lib/format";
@@ -143,7 +143,7 @@ export function OrdersManager() {
                     <li key={item.id} className="flex gap-4">
                       <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl bg-mint/40">
                         {item.image ? (
-                          <Image
+                          <MediaImage
                             src={item.image}
                             alt={item.name}
                             fill

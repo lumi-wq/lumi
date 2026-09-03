@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { MediaImage } from "@/components/MediaImage";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/format";
@@ -566,7 +566,7 @@ export function ProductsManager({
                     <div className="mt-3 flex flex-wrap gap-3">
                       {activeColor.images.map((url) => (
                         <div key={url} className="group relative h-24 w-24 overflow-hidden rounded-xl bg-chalk">
-                          <Image src={url} alt="" fill sizes="96px" className="object-cover" />
+                          <MediaImage src={url} alt="" fill sizes="96px" className="object-cover" />
                           <button
                             type="button"
                             onClick={() =>
