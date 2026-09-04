@@ -42,7 +42,7 @@ export function Footer() {
         <div>
           <Logo dark />
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/70">
-            Стильний одяг для дітей 6–16 років з натуральних матеріалів. Зручно, стильно, якісно.
+            Стильний одяг для дітей 6–16 років. Магазин у Сокирянах і доставка Новою Поштою по Україні.
           </p>
           <FooterContacts />
         </div>

@@ -16,6 +16,7 @@ import {
   BRAND_LEGAL,
   BRAND_LOCALITY,
   BRAND_PHONE,
+  BRAND_POSTAL_CODE,
   BRAND_REGION,
   BRAND_STREET,
   BRAND_TELEGRAM_URL,
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
     template: "%s | LUMI",
   },
   description:
-    "Інтернет-магазин дитячого та підліткового одягу 6–16 років. Доставка Новою Поштою по Україні, оплата карткою онлайн.",
+    "Одяг для дітей 6–16 років: магазин у Сокирянах і замовлення онлайн з доставкою Новою Поштою по Україні.",
   openGraph: {
     siteName: BRAND,
     locale: "uk_UA",
@@ -71,7 +72,7 @@ export const metadata: Metadata = {
 
 const orgJsonLd = {
   "@context": "https://schema.org",
-  "@type": ["Organization", "OnlineStore"],
+  "@type": ["Organization", "ClothingStore", "OnlineStore"],
   name: BRAND,
   legalName: BRAND_LEGAL,
   url: getSiteUrl(),
@@ -89,6 +90,7 @@ const orgJsonLd = {
     "@type": "PostalAddress",
     streetAddress: BRAND_STREET,
     addressLocality: BRAND_LOCALITY,
+    postalCode: BRAND_POSTAL_CODE,
     addressRegion: BRAND_REGION,
     addressCountry: BRAND_COUNTRY,
   },
