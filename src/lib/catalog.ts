@@ -68,11 +68,12 @@ export const BASE_COLLECTIONS: Record<string, CatalogCollection> = {
     h1: "Одяг для дівчаток 6–16 років",
     description: "Одяг для дівчаток 6–16 років — зручно, стильно, на кожен день.",
     intro:
-      "Каталог LUMI для дівчаток: футболки, штани, сукні, верхній одяг і аксесуари. Підбір за ростом, доставка по Україні.",
+      "Каталог LUMI для дівчаток: футболки, худі, штани, сукні, верхній одяг і аксесуари. Підбір за ростом, доставка по Україні.",
     gender: "GIRL",
     faq: DEFAULT_FAQ,
     related: [
       { href: "/category/girls/verkhniy-odyag", label: "Верхній одяг" },
+      { href: "/category/girls/khudi", label: "Худі" },
       { href: "/category/girls/shkilnyy-odyag", label: "Шкільний одяг" },
       { href: "/category/girls/6-8-rokiv", label: "6–8 років" },
       { href: "/category/girls/13-16-rokiv", label: "13–16 років" },
@@ -85,11 +86,12 @@ export const BASE_COLLECTIONS: Record<string, CatalogCollection> = {
     h1: "Одяг для хлопчиків 6–16 років",
     description: "Одяг для хлопчиків 6–16 років — база, спорт і верхній одяг.",
     intro:
-      "Каталог LUMI для хлопчиків: футболки, сорочки, штани, спортивні костюми, куртки. Замовлення на сайті з доставкою Новою Поштою.",
+      "Каталог LUMI для хлопчиків: футболки, худі, сорочки, штани, спортивні костюми, куртки. Замовлення на сайті з доставкою Новою Поштою.",
     gender: "BOY",
     faq: DEFAULT_FAQ,
     related: [
       { href: "/category/boys/verkhniy-odyag", label: "Верхній одяг" },
+      { href: "/category/boys/khudi", label: "Худі" },
       { href: "/category/boys/sorochky", label: "Сорочки" },
       { href: "/category/boys/shkilnyy-odyag", label: "Шкільний одяг" },
       { href: "/category/boys/6-8-rokiv", label: "6–8 років" },
