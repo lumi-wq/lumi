@@ -3,11 +3,11 @@ import { STORE_CONTACTS } from "@/components/layout/StoreContacts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import {
   BRAND,
-  BRAND_ADDRESS,
   BRAND_COUNTRY,
   BRAND_EMAIL,
   BRAND_LOCALITY,
   BRAND_PHONE,
+  BRAND_POSTAL_CODE,
   BRAND_REGION,
   BRAND_STREET,
   BRAND_TELEGRAM_URL,
@@ -18,7 +18,7 @@ import { absoluteUrl } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Контакти",
   description:
-    "Телефон, email, Telegram і адреса інтернет-магазину LUMI. Доставка Новою Поштою по Україні.",
+    "Телефон, email, Telegram і адреса магазину LUMI в Сокирянах. Доставка Новою Поштою по Україні.",
   ...canonicalMetadata("/contacts"),
 };
 
@@ -39,7 +39,7 @@ export default function ContactsPage() {
     url: absoluteUrl("/contacts"),
     inLanguage: "uk-UA",
     mainEntity: {
-      "@type": "OnlineStore",
+      "@type": "ClothingStore",
       name: BRAND,
       email: BRAND_EMAIL,
       telephone: BRAND_PHONE,
@@ -48,6 +48,7 @@ export default function ContactsPage() {
         "@type": "PostalAddress",
         streetAddress: BRAND_STREET,
         addressLocality: BRAND_LOCALITY,
+        postalCode: BRAND_POSTAL_CODE,
         addressRegion: BRAND_REGION,
         addressCountry: BRAND_COUNTRY,
       },
@@ -74,8 +75,8 @@ export default function ContactsPage() {
           </p>
           <h1 className="mt-3 font-display text-3xl font-black md:text-[40px]">Контакти</h1>
           <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-obsidian/70">
-            Напишіть або зателефонуйте — допоможемо з розміром, замовленням і доставкою. Відповідаємо
-            українською протягом робочого дня.
+            Напишіть, зателефонуйте або завітайте до магазину в Сокирянах — допоможемо з розміром,
+            замовленням і доставкою. Відповідаємо українською протягом робочого дня.
           </p>
         </div>
       </section>
@@ -120,8 +121,8 @@ export default function ContactsPage() {
             })}
           </ul>
           <p className="mt-8 max-w-2xl text-sm leading-relaxed text-obsidian/55">
-            Замовлення відправляємо Новою Поштою. Юридична адреса: {BRAND_ADDRESS}. Магазин працює
-            онлайн — шоуруму для відвідування немає.
+            За цією адресою працює магазин LUMI — товари можна купити на місці. Замовлення з сайту
+            відправляємо Новою Поштою по Україні.
           </p>
         </div>
       </section>

@@ -3,6 +3,7 @@ import { BRAND } from "@/lib/seo";
 import { parseHeightCm } from "@/lib/sizes";
 import { unitWeightKg } from "@/lib/shipping-weight";
 import { PRODUCTION_ORIGIN } from "@/lib/site";
+import { stripForeignBrandCopy } from "@/lib/trademark-copy";
 import type { ProductInputPayload } from "./client";
 import { getMerchantConfig } from "./config";
 import { merchantShippingAttributes } from "./shipping";
@@ -117,8 +118,13 @@ export async function mapProductToInputs(
     if (!imageLink) continue;
 
     const sizeCm = parseHeightCm(variant.size);
-    const title = [product.name, variant.size].filter(Boolean).join(", ").slice(0, 150);
-    const description = product.description.replace(/\s+/g, " ").trim().slice(0, 5000);
+    const title = stripForeignBrandCopy(
+      [product.name, variant.size].filter(Boolean).join(", ")
+    ).slice(0, 150);
+    const description = stripForeignBrandCopy(product.description.replace(/\s+/g, " ")).slice(
+      0,
+      5000
+    );
     const inStock = variant.stock > 0;
     const colorLabel = displayColorName(
       color?.name || variant.color,

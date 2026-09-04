@@ -1,6 +1,7 @@
 import {
   BRAND_ADDRESS,
   BRAND_EMAIL,
+  BRAND_MAPS_URL,
   BRAND_PHONE,
   BRAND_PHONE_DISPLAY,
   BRAND_TELEGRAM_URL,
@@ -28,10 +29,11 @@ export const STORE_CONTACTS = [
     external: true,
   },
   {
-    label: "Адреса",
+    label: "Магазин",
     value: BRAND_ADDRESS,
-    href: undefined,
+    href: BRAND_MAPS_URL,
     Icon: PinIcon,
+    external: true,
   },
 ] as const;
 
