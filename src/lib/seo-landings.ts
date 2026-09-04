@@ -84,6 +84,15 @@ const TYPE_SEO: Record<
       "Сорочки для хлопчиків 6–16 років — у школу та на кожен день. Підбір за ростом, доставка Новою Поштою по Україні.",
     allIntro: "Дитячі сорочки для хлопчиків 6–16 років. Купити онлайн в LUMI з доставкою Новою Поштою.",
   },
+  hoodies: {
+    slug: PRODUCT_TYPE_TO_CLUSTER.hoodies,
+    short: "Худі",
+    girlsIntro:
+      "Худі для дівчаток 6–16 років — на школу, прогулянку і прохолодні дні. Підбір за ростом, доставка Новою Поштою.",
+    boysIntro:
+      "Худі для хлопчиків 6–16 років: зручна посадка на кожен день. Замовлення на сайті з доставкою по Україні.",
+    allIntro: "Дитячі худі 6–16 років. Купити онлайн в LUMI з доставкою Новою Поштою.",
+  },
   pants: {
     slug: PRODUCT_TYPE_TO_CLUSTER.pants,
     short: "Штани",
@@ -181,6 +190,7 @@ const CLOTHING_TYPES = [
   "sets",
   "tshirts",
   "shirts",
+  "hoodies",
   "pants",
   "shorts",
   "dresses",
@@ -426,6 +436,7 @@ function buildLandings(): SeoLanding[] {
     rootTypeLanding("outerwear"),
     rootTypeLanding("sportswear"),
     rootTypeLanding("tshirts"),
+    rootTypeLanding("hoodies"),
     rootTypeLanding("sets"),
     {
       parent: "root",

@@ -6,6 +6,7 @@ export const PRODUCT_TYPE_DEFS = [
   { slug: "sets", name: "Комплекти", sortOrder: 28, girlOnly: false, unisex: false },
   { slug: "tshirts", name: "Футболки", sortOrder: 30, girlOnly: false, unisex: false },
   { slug: "shirts", name: "Сорочки", sortOrder: 32, girlOnly: false, unisex: false, boyOnly: true },
+  { slug: "hoodies", name: "Худі", sortOrder: 35, girlOnly: false, unisex: false },
   { slug: "pants", name: "Штани", sortOrder: 40, girlOnly: false, unisex: false },
   { slug: "shorts", name: "Шорти", sortOrder: 45, girlOnly: false, unisex: false },
   { slug: "dresses", name: "Сукні", sortOrder: 50, girlOnly: true, unisex: false },

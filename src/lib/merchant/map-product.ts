@@ -36,6 +36,7 @@ const GOOGLE_CATEGORY: Record<string, string> = {
   sets: "5598",
   tshirts: "212",
   shirts: "212",
+  hoodies: "212",
   pants: "204",
   shorts: "207",
   dresses: "2271",
